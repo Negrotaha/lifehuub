@@ -1632,6 +1632,16 @@ def record_mentions(sb, text: str, source_type: str, source_id: str, created_by:
                 "created_by": created_by,
                 "created_at": datetime.now(timezone.utc).isoformat(),
             }).execute()
+            create_notification(
+                sb,
+                u["id"],
+                created_by,
+                "mention",
+                "You were mentioned",
+                f"Someone mentioned you in a {source_type.replace('_', ' ')}.",
+                source_type,
+                source_id,
+            )
     except Exception:
         pass
 
@@ -1659,6 +1669,81 @@ def mark_mentions_read(sb, user_id, source_type=None):
     except Exception:
         pass
 
+def check_rate_limit(action: str, limit: int = 6, seconds: int = 60) -> bool:
+    """Small per-session rate limiter for costly writes."""
+    key = f"rate_{action}"
+    now = time.time()
+    hits = [t for t in st.session_state.get(key, []) if now - t < seconds]
+    if len(hits) >= limit:
+        st.warning(f"Slow down a little. Try again in {int(seconds - (now - hits[0]))}s.")
+        st.session_state[key] = hits
+        return False
+    hits.append(now)
+    st.session_state[key] = hits
+    return True
+
+def create_notification(sb, user_id, actor_id, kind, title, body="", source_type=None, source_id=None):
+    if not user_id or user_id == actor_id:
+        return
+    try:
+        sb.table("notifications").insert({
+            "user_id": user_id,
+            "actor_id": actor_id,
+            "kind": kind,
+            "title": title,
+            "body": body,
+            "source_type": source_type,
+            "source_id": source_id,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }).execute()
+    except Exception:
+        pass
+
+def get_unread_notification_count(sb, user_id) -> int:
+    try:
+        r = sb.table("notifications").select("id", count="exact").eq("user_id", user_id).eq("is_read", False).execute()
+        return r.count or 0
+    except Exception:
+        return 0
+
+def follow_counts(sb, user_id):
+    try:
+        followers = sb.table("user_follows").select("id", count="exact").eq("following_id", user_id).execute().count or 0
+        following = sb.table("user_follows").select("id", count="exact").eq("follower_id", user_id).execute().count or 0
+        return followers, following
+    except Exception:
+        return 0, 0
+
+def is_following(sb, follower_id, following_id) -> bool:
+    try:
+        r = sb.table("user_follows").select("id").eq("follower_id", follower_id).eq("following_id", following_id).limit(1).execute()
+        return bool(r.data)
+    except Exception:
+        return False
+
+def report_target(sb, target_type, target_id, reason):
+    if not reason or not reason.strip():
+        st.error("Please enter a short reason.")
+        return
+    if not check_rate_limit("report", limit=3, seconds=120):
+        return
+    try:
+        sb.table("reports").insert({
+            "reporter_id": st.session_state.user_id,
+            "target_type": target_type,
+            "target_id": target_id,
+            "reason": reason.strip()[:300],
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }).execute()
+        st.success("Report sent to admins.")
+    except Exception as e:
+        st.error(f"Could not send report: {e}")
+
+def render_attachment_preview(url, name, file_type):
+    if not url:
+        return ""
+    return render_attachment_html(url, name, file_type)
+
 def ago(ts: str) -> str:
     try:
         dt = datetime.fromisoformat(ts.replace("Z","+00:00")).replace(tzinfo=None)
@@ -1671,6 +1756,8 @@ def ago(ts: str) -> str:
 
 PAGE_SUBTITLES = {
     "Home Feed": "Publish updates, discover your community, react to posts, and jump into member profiles.",
+    "Discover": "Search members, follow people, open public profiles, and grow your workspace network.",
+    "Notifications": "Review follows, mentions, comments, reactions, messages, and workspace alerts.",
     "AI Assistant": "Ask questions, draft ideas, and get fast help without leaving your workspace.",
     "Live Chat": "Private conversations with unread badges, attachments, mentions, search, and typing status.",
     "Calendar": "Plan upcoming events, meetings, reminders, and personal schedules in one clean view.",
@@ -1782,6 +1869,16 @@ def get_user_profile(user_id):
     sb = get_sb()
     result = sb.table("profiles").select("*").eq("id", user_id).execute()
     return result.data[0] if result.data else None
+
+def get_user_by_username(username):
+    if not username:
+        return None
+    try:
+        sb = get_sb()
+        result = sb.table("profiles").select("*").eq("username", username).limit(1).execute()
+        return result.data[0] if result.data else None
+    except Exception:
+        return None
 
 # ── Groq AI ──────────────────────────────────────────────
 # ── Groq Chat Completions Helper (OpenAI-compatible) ────────
@@ -2100,9 +2197,16 @@ def view_user_profile(user_id):
     initials = user["username"][:2].upper()
     safe_username = escape_html(user.get("username", "user"))
     safe_bio = safe_multiline(user.get("bio") or "No bio yet.")
+    followers, following = follow_counts(sb, user["id"])
+    following_this_user = is_following(sb, st.session_state.user_id, user["id"]) if user["id"] != st.session_state.user_id else False
     
     if st.button("✕ Close Profile", use_container_width=True):
         st.session_state.viewing_user = None
+        try:
+            if "profile" in st.query_params:
+                del st.query_params["profile"]
+        except Exception:
+            pass
         st.rerun()
     
     st.markdown(f"""
@@ -2111,6 +2215,9 @@ def view_user_profile(user_id):
         <div class="av av-lg">{initials}</div>
         <div>
           <h2 style="margin:0;font-family:'Space Grotesk',sans-serif;color:var(--yellow);">@{safe_username}</h2>
+          <div style="color:var(--t3);font-size:.78rem;margin-top:.2rem;">
+            {'✓ Verified · ' if user.get('is_verified') else ''}{'Admin · ' if user.get('is_admin') else ''}{escape_html(user.get('profile_badge') or 'Member')}
+          </div>
           <div style="color:{'var(--yellow)' if is_online else 'var(--t3)'};font-size:.9rem;margin:.2rem 0;">
             {'<span class="online"></span>Online now' if is_online else '⚫ Offline'}
           </div>
@@ -2132,9 +2239,46 @@ def view_user_profile(user_id):
           <div class="val" style="font-size:1.8rem;">{len(sb.table("events").select("id").eq("user_id", user["id"]).execute().data or [])}</div>
           <div class="lbl">Events</div>
         </div>
+        <div class="metric" style="padding:1rem;">
+          <div class="val" style="font-size:1.8rem;">{followers}</div>
+          <div class="lbl">Followers</div>
+        </div>
+        <div class="metric" style="padding:1rem;">
+          <div class="val" style="font-size:1.8rem;">{following}</div>
+          <div class="lbl">Following</div>
+        </div>
       </div>
     </div>
     """, unsafe_allow_html=True)
+
+    if user["id"] != st.session_state.user_id:
+        c_follow, c_msg, c_report = st.columns(3)
+        with c_follow:
+            follow_label = "Unfollow" if following_this_user else "Follow"
+            if st.button(follow_label, key=f"follow_{user['id']}", use_container_width=True):
+                if following_this_user:
+                    sb.table("user_follows").delete().eq("follower_id", st.session_state.user_id).eq("following_id", user["id"]).execute()
+                else:
+                    sb.table("user_follows").insert({
+                        "follower_id": st.session_state.user_id,
+                        "following_id": user["id"],
+                        "created_at": datetime.now(timezone.utc).isoformat(),
+                    }).execute()
+                    create_notification(sb, user["id"], st.session_state.user_id, "follow", "New follower", f"@{st.session_state.username} followed you.", "user", st.session_state.user_id)
+                st.rerun()
+        with c_msg:
+            if st.button(f"Message @{user['username']}", key=f"profile_dm_{user['id']}", use_container_width=True):
+                st.session_state.page = "live_chat"
+                st.session_state.chat_target = user["username"]
+                st.session_state.viewing_user = None
+                st.rerun()
+        with c_report:
+            with st.expander("Report"):
+                reason = st.text_input("Reason", key=f"report_user_{user['id']}", label_visibility="collapsed", placeholder="Why report this user?")
+                if st.button("Send report", key=f"send_report_user_{user['id']}"):
+                    report_target(sb, "user", user["id"], reason)
+        profile_url = f"{get_config('APP_URL', '').rstrip('/')}/?profile={user['username']}" if get_config("APP_URL") else f"?profile={user['username']}"
+        st.code(profile_url, language="text")
     
     st.markdown("### 📝 User's Posts")
     posts = sb.table("posts").select("*").eq("user_id", user["id"]).order("created_at", desc=True).limit(10).execute()
@@ -2179,11 +2323,8 @@ def view_user_profile(user_id):
             </div>
             """, unsafe_allow_html=True)
     
-    if st.button(f"💬 Message @{user['username']}", use_container_width=True):
-        st.session_state.page = "live_chat"
-        st.session_state.chat_target = user["username"]
-        st.session_state.viewing_user = None
-        st.rerun()
+    if user["id"] == st.session_state.user_id:
+        st.info("This is your public profile preview.")
 
 
 # ============================================================
@@ -2276,18 +2417,40 @@ def home_page():
         with st.expander("✍️  Write a post...", expanded=False):
             with st.form("pf", clear_on_submit=True):
                 c = st.text_area("Write your thoughts...", placeholder="What's on your mind? Use @username to mention someone 🤔", max_chars=500, label_visibility="collapsed")
-                if st.form_submit_button("🚀 Post", use_container_width=True) and c and c.strip():
-                    result = sb.table("posts").insert({
+                post_upload = st.file_uploader("Attach image or file", type=None, key="post_upload")
+                ai_polish = st.checkbox("Polish this post with AI before publishing")
+                if st.form_submit_button("Publish", use_container_width=True) and c and c.strip():
+                    if not check_rate_limit("post", limit=5, seconds=60):
+                        return
+                    content_to_post = c.strip()
+                    if ai_polish and get_config("GROQ_API_KEY"):
+                        with st.spinner("Polishing post..."):
+                            improved = call_groq([
+                                {"role": "system", "content": "Rewrite the user's post to be clear, friendly, and concise. Keep mentions like @username unchanged. Return only the rewritten post."},
+                                {"role": "user", "content": content_to_post},
+                            ], get_config("GROQ_API_KEY"))
+                        if improved and not improved.startswith("Groq API Error"):
+                            content_to_post = improved.strip()[:500]
+                    payload = {
                         "user_id": st.session_state.user_id,
                         "username": st.session_state.username,
-                        "content": c.strip(),
+                        "content": content_to_post,
                         "created_at": datetime.now(timezone.utc).isoformat()
+                    }
+                    if post_upload:
+                        att = file_to_data_uri(post_upload)
+                        if att:
+                            payload["file_url"] = att["url"]
+                            payload["file_name"] = att["name"]
+                            payload["file_type"] = att["type"]
+                    result = sb.table("posts").insert({
+                        **payload
                     }).execute()
                     if result.data:
-                        record_mentions(sb, c.strip(), "post", result.data[0]["id"], st.session_state.user_id)
+                        record_mentions(sb, content_to_post, "post", result.data[0]["id"], st.session_state.user_id)
                     st.rerun()
 
-        posts = sb.table("posts").select("*").order("created_at", desc=True).limit(25).execute()
+        posts = sb.table("posts").select("*").order("is_pinned", desc=True).order("created_at", desc=True).limit(25).execute()
         if not posts.data:
             card("""
             <div style="text-align:center;padding:4rem 0;">
@@ -2318,6 +2481,7 @@ def home_page():
                     </div>
                   </div>
                   <p style="margin:0;color:var(--t);line-height:1.7;font-size:.95rem;">{content_html}</p>
+                  {render_attachment_preview(p.get('file_url'), p.get('file_name'), p.get('file_type'))}
                 </div>
                 """, unsafe_allow_html=True)
 
@@ -2336,13 +2500,127 @@ def home_page():
                                     "post_id": p["id"], "user_id": st.session_state.user_id, "emoji": emoji,
                                     "created_at": datetime.now(timezone.utc).isoformat(),
                                 }).execute()
+                                create_notification(sb, p["user_id"], st.session_state.user_id, "reaction", "New reaction", f"@{st.session_state.username} reacted {emoji} to your post.", "post", p["id"])
                             st.rerun()
+
+                with st.expander("Comments and moderation", expanded=False):
+                    comments = sb.table("post_comments").select("*").eq("post_id", p["id"]).order("created_at").limit(30).execute()
+                    if comments.data:
+                        for cm in comments.data:
+                            st.markdown(f"**@{escape_html(cm['username'])}** · {ago(cm['created_at'])}<br>{linkify_mentions(cm['content'])}", unsafe_allow_html=True)
+                    else:
+                        st.caption("No comments yet.")
+
+                    with st.form(f"comment_form_{p['id']}", clear_on_submit=True):
+                        comment = st.text_input("Add a comment", key=f"comment_{p['id']}", label_visibility="collapsed", placeholder="Write a reply...")
+                        sent_comment = st.form_submit_button("Comment", use_container_width=True)
+                    if sent_comment and comment.strip():
+                        if check_rate_limit("comment", limit=10, seconds=60):
+                            res = sb.table("post_comments").insert({
+                                "post_id": p["id"],
+                                "user_id": st.session_state.user_id,
+                                "username": st.session_state.username,
+                                "content": comment.strip()[:300],
+                                "created_at": datetime.now(timezone.utc).isoformat(),
+                            }).execute()
+                            if res.data:
+                                create_notification(sb, p["user_id"], st.session_state.user_id, "comment", "New comment", f"@{st.session_state.username} commented on your post.", "post", p["id"])
+                            st.rerun()
+
+                    mod_cols = st.columns(3)
+                    with mod_cols[0]:
+                        if (mine or st.session_state.user.get("is_admin")) and st.button("Unpin" if p.get("is_pinned") else "Pin", key=f"pin_post_{p['id']}"):
+                            sb.table("posts").update({"is_pinned": not p.get("is_pinned", False)}).eq("id", p["id"]).execute()
+                            st.rerun()
+                    with mod_cols[1]:
+                        reason = st.text_input("Report reason", key=f"report_post_reason_{p['id']}", label_visibility="collapsed", placeholder="Report reason")
+                    with mod_cols[2]:
+                        if st.button("Report", key=f"report_post_{p['id']}"):
+                            report_target(sb, "post", p["id"], reason)
 
             with col2:
                 if not mine:
                     if st.button("👤 View", key=f"view_{p['id']}"):
                         st.session_state.viewing_user = p["user_id"]
                         st.rerun()
+
+
+def notifications_page():
+    sb = get_sb()
+    sh_header("🔔", "Notifications")
+    rows = sb.table("notifications").select("*").eq("user_id", st.session_state.user_id)\
+        .order("created_at", desc=True).limit(50).execute()
+
+    c1, c2 = st.columns([3, 1])
+    with c2:
+        if st.button("Mark all read", use_container_width=True):
+            sb.table("notifications").update({"is_read": True}).eq("user_id", st.session_state.user_id).eq("is_read", False).execute()
+            st.rerun()
+
+    if not rows.data:
+        card("<p style='color:var(--t3);text-align:center;'>No notifications yet.</p>")
+        return
+
+    for n in rows.data:
+        status = "" if n.get("is_read") else "<span class='badge'>New</span>"
+        st.markdown(f"""
+        <div class="card" style="padding:1rem 1.2rem;">
+          <div style="display:flex;justify-content:space-between;gap:1rem;">
+            <div>
+              <div style="font-weight:800;color:var(--yellow);">{escape_html(n.get('title', 'Notification'))} {status}</div>
+              <div style="color:var(--t2);font-size:.9rem;margin-top:.25rem;">{safe_multiline(n.get('body', ''))}</div>
+            </div>
+            <div style="color:var(--t3);font-size:.75rem;white-space:nowrap;">{ago(n.get('created_at', ''))}</div>
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+
+def discover_page():
+    sb = get_sb()
+    sh_header("🔎", "Discover")
+    q = st.text_input("Search members", placeholder="Search by username or bio...", key="discover_q")
+    query = sb.table("profiles").select("id,username,bio,last_seen,avatar_url,is_admin,is_verified,profile_badge").neq("id", st.session_state.user_id)
+    if q and q.strip():
+        term = f"%{q.strip()}%"
+        query = query.or_(f"username.ilike.{term},bio.ilike.{term}")
+    users = query.order("last_seen", desc=True).limit(40).execute()
+
+    if not users.data:
+        card("<p style='color:var(--t3);text-align:center;'>No members found.</p>")
+        return
+
+    for u in users.data:
+        followers, _ = follow_counts(sb, u["id"])
+        following = is_following(sb, st.session_state.user_id, u["id"])
+        safe_username = escape_html(u.get("username", "user"))
+        safe_bio = safe_multiline(u.get("bio") or "No bio yet.")
+        c_info, c_follow, c_view = st.columns([4, 1, 1])
+        with c_info:
+            badge = "✓ Verified" if u.get("is_verified") else (u.get("profile_badge") or "Member")
+            st.markdown(f"""
+            <div class="card" style="padding:1rem 1.2rem;margin-bottom:.35rem;">
+              <div style="font-weight:900;color:var(--yellow);">@{safe_username}</div>
+              <div style="color:var(--t3);font-size:.76rem;">{escape_html(badge)} · {followers} followers</div>
+              <div style="color:var(--t2);font-size:.88rem;margin-top:.35rem;">{safe_bio}</div>
+            </div>
+            """, unsafe_allow_html=True)
+        with c_follow:
+            if st.button("Unfollow" if following else "Follow", key=f"discover_follow_{u['id']}", use_container_width=True):
+                if following:
+                    sb.table("user_follows").delete().eq("follower_id", st.session_state.user_id).eq("following_id", u["id"]).execute()
+                else:
+                    sb.table("user_follows").insert({
+                        "follower_id": st.session_state.user_id,
+                        "following_id": u["id"],
+                        "created_at": datetime.now(timezone.utc).isoformat(),
+                    }).execute()
+                    create_notification(sb, u["id"], st.session_state.user_id, "follow", "New follower", f"@{st.session_state.username} followed you.", "user", st.session_state.user_id)
+                st.rerun()
+        with c_view:
+            if st.button("Profile", key=f"discover_profile_{u['id']}", use_container_width=True):
+                st.session_state.viewing_user = u["id"]
+                st.rerun()
 
 
 # ============================================================
@@ -2498,7 +2776,7 @@ def render_live_messages_fragment(sb, tid, sel, target_avatar):
     # Mark incoming messages from this partner as read the moment we
     # view the conversation (this is what clears the unread badge).
     try:
-        sb.table("messages").update({"is_read": True}).eq("sender_id", tid).eq("receiver_id", st.session_state.user_id).eq("is_read", False).execute()
+        sb.table("messages").update({"is_read": True, "read_at": datetime.now(timezone.utc).isoformat()}).eq("sender_id", tid).eq("receiver_id", st.session_state.user_id).eq("is_read", False).execute()
     except Exception:
         pass
 
@@ -2674,6 +2952,7 @@ def live_chat_page():
         result = sb.table("messages").insert(payload).execute()
         if result.data and nm:
             record_mentions(sb, nm.strip(), "direct_message", result.data[0]["id"], st.session_state.user_id)
+            create_notification(sb, tid, st.session_state.user_id, "message", "New direct message", f"@{st.session_state.username} sent you a message.", "direct_message", result.data[0]["id"])
         st.rerun()
 
 
@@ -2773,13 +3052,21 @@ def get_channel_unread(sb, channel_id, user_id, last_seen_at):
     except Exception:
         return 0
 
+def get_channel_role(sb, channel_id, user_id):
+    try:
+        r = sb.table("channel_members").select("role").eq("channel_id", channel_id).eq("user_id", user_id).limit(1).execute()
+        return (r.data or [{}])[0].get("role", "member")
+    except Exception:
+        return "member"
+
 
 @st.fragment(run_every=3)
 def render_channel_messages_fragment(sb, channel_id, channel_name):
     """Auto-refreshing channel message feed, same pattern as DM chat."""
     mark_mentions_read(sb, st.session_state.user_id, "channel_message")
     msgs = sb.table("channel_messages").select("*").eq("channel_id", channel_id)\
-        .order("created_at", desc=False).limit(75).execute()
+        .order("is_pinned", desc=True).order("created_at", desc=False).limit(75).execute()
+    my_channel_role = get_channel_role(sb, channel_id, st.session_state.user_id)
 
     if not msgs.data:
         st.markdown(f"<p style='color:var(--t3);text-align:center;padding:2rem;'>No messages in #{escape_html(channel_name)} yet. Say hello! 👋</p>", unsafe_allow_html=True)
@@ -2817,6 +3104,11 @@ def render_channel_messages_fragment(sb, channel_id, channel_name):
             if st.button(f"View @{g['username']}", key=f"channel_view_profile_{channel_id}_{g['sender_id']}_{g['msgs'][0]['id']}"):
                 st.session_state.viewing_user = g["sender_id"]
                 st.rerun()
+        if g["mine"] or my_channel_role in ("owner", "moderator") or st.session_state.user.get("is_admin"):
+            first_msg = g["msgs"][0]
+            if st.button("Unpin" if first_msg.get("is_pinned") else "Pin message", key=f"pin_channel_msg_{first_msg['id']}"):
+                sb.table("channel_messages").update({"is_pinned": not first_msg.get("is_pinned", False)}).eq("id", first_msg["id"]).execute()
+                st.rerun()
 
 
 def channels_page():
@@ -2824,6 +3116,24 @@ def channels_page():
     sh_header("📡", "Channels")
 
     channels, joined_ids, last_read = get_user_channels(sb, st.session_state.user_id)
+
+    with st.expander("🔗 Join by invite", expanded=False):
+        invite_code = st.text_input("Invite code", key="join_invite_code", placeholder="Paste invite code")
+        if st.button("Join invite", use_container_width=True) and invite_code.strip():
+            invite = sb.table("channels").select("*").eq("invite_code", invite_code.strip()).limit(1).execute()
+            if not invite.data:
+                st.error("Invalid invite code.")
+            else:
+                channel = invite.data[0]
+                sb.table("channel_members").insert({
+                    "channel_id": channel["id"],
+                    "user_id": st.session_state.user_id,
+                    "role": "member",
+                    "joined_at": datetime.now(timezone.utc).isoformat(),
+                    "last_read_at": datetime.now(timezone.utc).isoformat(),
+                }).execute()
+                st.session_state.active_channel = channel["id"]
+                st.rerun()
 
     with st.expander("➕ Create a channel", expanded=False):
         with st.form("new_channel_f", clear_on_submit=True):
@@ -2846,6 +3156,7 @@ def channels_page():
                     if result.data:
                         sb.table("channel_members").insert({
                             "channel_id": result.data[0]["id"], "user_id": st.session_state.user_id,
+                            "role": "owner",
                             "joined_at": datetime.now(timezone.utc).isoformat(),
                             "last_read_at": datetime.now(timezone.utc).isoformat(),
                         }).execute()
@@ -2869,6 +3180,7 @@ def channels_page():
                 if not is_joined:
                     sb.table("channel_members").insert({
                         "channel_id": ch["id"], "user_id": st.session_state.user_id,
+                        "role": "member",
                         "joined_at": datetime.now(timezone.utc).isoformat(),
                         "last_read_at": datetime.now(timezone.utc).isoformat(),
                     }).execute()
@@ -2902,10 +3214,12 @@ def channels_page():
 
         safe_channel_name = escape_html(active_channel.get("name", "channel"))
         safe_channel_desc = safe_multiline(active_channel.get("description", ""))
+        my_role = get_channel_role(sb, active_channel["id"], st.session_state.user_id)
         st.markdown(f"""
         <div style="margin-bottom:1rem;">
           <div style="font-weight:800;font-size:1.2rem;color:var(--yellow);">#{safe_channel_name}</div>
           <div style="color:var(--t3);font-size:.82rem;">{safe_channel_desc}</div>
+          <div style="color:var(--t3);font-size:.76rem;margin-top:.3rem;">Role: {escape_html(my_role)} · Invite: <code>{escape_html(active_channel.get('invite_code', ''))}</code></div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -2989,7 +3303,7 @@ def habits_page():
         view_user_profile(st.session_state.viewing_user)
         return
     
-    t1, t2 = st.tabs(["📊 My Habits", "🌍 Community"])
+    t1, t2, t3 = st.tabs(["📊 My Habits", "🌍 Community", "🏆 Leaderboard"])
 
     with t1:
         col1, col2 = st.columns([1, 2])
@@ -3070,6 +3384,30 @@ def habits_page():
                   <div style="color:var(--t3);font-size:.8rem;margin-top:.2rem;">{h['frequency']}</div>
                 </div>
                 """, unsafe_allow_html=True)
+
+    with t3:
+        st.markdown("### 🏆 Habit Leaderboard")
+        shared = sb.table("habits").select("*").eq("is_shared", True).limit(100).execute()
+        leaderboard = []
+        for h in (shared.data or []):
+            leaderboard.append({
+                "username": h.get("username", "user"),
+                "habit": h.get("name", "Habit"),
+                "emoji": h.get("emoji", "⭐"),
+                "streak": compute_habit_streak(sb, h["id"]),
+            })
+        leaderboard = sorted(leaderboard, key=lambda x: x["streak"], reverse=True)[:15]
+        if not leaderboard:
+            card("<p style='color:var(--t3);'>No shared streaks yet.</p>")
+        for i, row in enumerate(leaderboard, start=1):
+            medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else f"#{i}"
+            st.markdown(f"""
+            <div class="card" style="padding:1rem 1.2rem;display:flex;justify-content:space-between;align-items:center;">
+              <div><strong style="color:var(--yellow);">{medal} @{escape_html(row['username'])}</strong>
+              <div style="color:var(--t2);font-size:.88rem;">{escape_html(row['emoji'])} {escape_html(row['habit'])}</div></div>
+              <div style="font-size:1.2rem;font-weight:900;color:var(--yellow);">🔥 {row['streak']}d</div>
+            </div>
+            """, unsafe_allow_html=True)
 
 
 # ============================================================
@@ -3203,6 +3541,10 @@ def sidebar():
             unread_mentions = get_unread_mention_count(sb, st.session_state.user_id)
         except Exception:
             unread_mentions = 0
+        try:
+            unread_notifications = get_unread_notification_count(sb, st.session_state.user_id)
+        except Exception:
+            unread_notifications = 0
         is_admin = st.session_state.user.get("is_admin", False)
 
         st.markdown(f"""
@@ -3211,7 +3553,7 @@ def sidebar():
           <div style="flex:1;">
             <div style="font-weight:700;font-size:.9rem;color:var(--yellow);">@{st.session_state.username}</div>
             <div style="font-size:.7rem;color:var(--yellow);">Active now
-              {f'<span style="background:var(--red);color:white;border-radius:99px;padding:.05rem .35rem;font-size:.65rem;font-weight:700;margin-left:.3rem;">{unread_mentions}</span>' if unread_mentions else ''}
+              {f'<span style="background:var(--red);color:white;border-radius:99px;padding:.05rem .35rem;font-size:.65rem;font-weight:700;margin-left:.3rem;">{unread_mentions + unread_notifications}</span>' if (unread_mentions + unread_notifications) else ''}
             </div>
           </div>
         </div>
@@ -3231,6 +3573,8 @@ def sidebar():
 
         st.markdown('<div class="sb-eyebrow">Workspace</div>', unsafe_allow_html=True)
         nav_btn("🏠", "Home", "home", badge=unread_mentions)
+        nav_btn("🔔", "Notifications", "notifications", badge=unread_notifications)
+        nav_btn("🔎", "Discover", "discover")
         nav_btn("📡", "Channels", "channels")
         nav_btn("🤖", "AI Chat", "ai_chat")
         nav_btn("💬", "Live Chat", "live_chat", badge=unread_dms)
@@ -3241,6 +3585,18 @@ def sidebar():
             nav_btn("🛡️", "Admin", "admin")
 
         st.markdown("---")
+        theme = st.radio("Theme", ["Midnight", "Ocean"], horizontal=True, key="theme_mode")
+        if theme == "Ocean":
+            st.markdown("""
+            <style>
+            html, body, .stApp {
+              background:
+                radial-gradient(circle at 12% 8%, rgba(14,165,233,.28), transparent 28%),
+                radial-gradient(circle at 88% 12%, rgba(59,130,246,.20), transparent 30%),
+                linear-gradient(135deg, #031525, #082f49 48%, #0f172a 100%) !important;
+            }
+            </style>
+            """, unsafe_allow_html=True)
 
         member_count, post_count, msg_count = get_platform_stats()
         st.markdown(f"""
@@ -3280,18 +3636,18 @@ def admin_page():
 
     sh_header("🛡️", "Admin Panel")
 
-    tab_users, tab_posts, tab_channels = st.tabs(["👥 Users", "📝 Posts", "📡 Channels"])
+    tab_users, tab_posts, tab_channels, tab_reports = st.tabs(["👥 Users", "📝 Posts", "📡 Channels", "🚩 Reports"])
 
     with tab_users:
         st.markdown("### All Members")
-        users = sb.table("profiles").select("id,username,email,is_admin,is_banned,created_at,last_seen").order("created_at", desc=True).execute()
+        users = sb.table("profiles").select("id,username,email,is_admin,is_banned,is_verified,profile_badge,created_at,last_seen").order("created_at", desc=True).execute()
         for u in (users.data or []):
             is_me = u["id"] == st.session_state.user_id
             five_ago = (datetime.now(timezone.utc) - timedelta(minutes=5)).isoformat()
             is_onl = (u.get("last_seen") or "") > five_ago
             safe_username = escape_html(u.get("username", "user"))
             safe_email = escape_html(u.get("email", ""))
-            col_i, col_a, col_b, col_ba = st.columns([3, 1, 1, 1])
+            col_i, col_a, col_b, col_v, col_ba = st.columns([3, 1, 1, 1, 1])
             with col_i:
                 st.markdown(f"""
                 <div style="padding:.5rem;background:var(--card);border-radius:var(--r);margin-bottom:.3rem;">
@@ -3313,6 +3669,14 @@ def admin_page():
                     admin_action = "Remove Admin" if u.get("is_admin") else "Make Admin"
                     if st.button(admin_action, key=f"adm_{u['id']}"):
                         sb.table("profiles").update({"is_admin": not u.get("is_admin", False)}).eq("id", u["id"]).execute()
+                        st.rerun()
+                with col_v:
+                    verify_action = "Unverify" if u.get("is_verified") else "Verify"
+                    if st.button(verify_action, key=f"ver_{u['id']}"):
+                        sb.table("profiles").update({
+                            "is_verified": not u.get("is_verified", False),
+                            "profile_badge": "Verified" if not u.get("is_verified", False) else "",
+                        }).eq("id", u["id"]).execute()
                         st.rerun()
                 with col_ba:
                     if st.button("Del Posts", key=f"delpost_{u['id']}"):
@@ -3359,6 +3723,34 @@ def admin_page():
             with col_dc:
                 if st.button("🗑️", key=f"admdelch_{ch['id']}"):
                     sb.table("channels").delete().eq("id", ch["id"]).execute()
+                    st.rerun()
+
+    with tab_reports:
+        st.markdown("### Open Reports")
+        reports = sb.table("reports").select("*").order("created_at", desc=True).limit(80).execute()
+        if not reports.data:
+            st.caption("No reports yet.")
+        for r in (reports.data or []):
+            st.markdown(f"""
+            <div class="card" style="padding:1rem 1.2rem;">
+              <div style="display:flex;justify-content:space-between;gap:1rem;">
+                <div>
+                  <strong style="color:var(--yellow);">{escape_html(r.get('target_type'))}</strong>
+                  <span style="color:var(--t3);font-size:.75rem;"> · {escape_html(r.get('status'))} · {ago(r.get('created_at', ''))}</span>
+                  <p style="color:var(--t2);margin:.35rem 0 0;">{safe_multiline(r.get('reason', ''))}</p>
+                </div>
+                <code style="color:var(--t3);font-size:.68rem;">{escape_html(r.get('target_id'))}</code>
+              </div>
+            </div>
+            """, unsafe_allow_html=True)
+            c1, c2 = st.columns(2)
+            with c1:
+                if st.button("Mark reviewed", key=f"review_report_{r['id']}", use_container_width=True):
+                    sb.table("reports").update({"status": "reviewed"}).eq("id", r["id"]).execute()
+                    st.rerun()
+            with c2:
+                if st.button("Dismiss", key=f"dismiss_report_{r['id']}", use_container_width=True):
+                    sb.table("reports").update({"status": "dismissed"}).eq("id", r["id"]).execute()
                     st.rerun()
 
 
@@ -3409,6 +3801,15 @@ def main():
         st.error(f"DB error: {e}")
         return
 
+    try:
+        profile_param = st.query_params.get("profile")
+        if profile_param and not st.session_state.get("viewing_user"):
+            profile_user = get_user_by_username(profile_param)
+            if profile_user:
+                st.session_state.viewing_user = profile_user["id"]
+    except Exception:
+        pass
+
     page = sidebar()
 
     # Profile overlay takes priority over the active page, but never
@@ -3419,6 +3820,8 @@ def main():
 
     pages = {
         "home": home_page,
+        "notifications": notifications_page,
+        "discover": discover_page,
         "channels": channels_page,
         "ai_chat": ai_chat_page,
         "live_chat": live_chat_page,
