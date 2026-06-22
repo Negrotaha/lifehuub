@@ -1559,21 +1559,47 @@ div[role="radiogroup"] label:hover {
 # ============================================================
 # DB + Helpers
 # ============================================================
+def session_cache_get(key: str, ttl: int, loader):
+    """Tiny per-user TTL cache; avoids cross-user RLS leaks from global caching."""
+    now = time.time()
+    cache = st.session_state.setdefault("_ttl_cache", {})
+    item = cache.get(key)
+    if item and now - item["time"] < ttl:
+        return item["value"]
+    value = loader()
+    cache[key] = {"time": now, "value": value}
+    return value
+
+def session_cache_clear(prefix: str = ""):
+    cache = st.session_state.get("_ttl_cache", {})
+    for k in list(cache.keys()):
+        if not prefix or k.startswith(prefix):
+            cache.pop(k, None)
+
 def get_sb() -> Client:
     url = get_config("SUPABASE_URL")
     key = get_config("SUPABASE_ANON_KEY") or get_config("SUPABASE_KEY")
     if not url or not key:
         st.error("❌ Missing SUPABASE_URL or SUPABASE_ANON_KEY. Add them to .env locally or Streamlit Secrets in the cloud.")
         st.stop()
-    sb = create_client(url, key)
+    client_key = f"{url}|{key[:8]}"
+    sb = st.session_state.get("_sb_client")
+    if sb is None or st.session_state.get("_sb_client_key") != client_key:
+        sb = create_client(url, key)
+        st.session_state["_sb_client"] = sb
+        st.session_state["_sb_client_key"] = client_key
+
     access_token = st.session_state.get("sb_access_token")
     refresh_token = st.session_state.get("sb_refresh_token")
-    if access_token and refresh_token:
+    auth_key = f"{access_token[:16] if access_token else ''}|{refresh_token[:16] if refresh_token else ''}"
+    if access_token and refresh_token and st.session_state.get("_sb_auth_key") != auth_key:
         try:
             session_res = sb.auth.set_session(access_token, refresh_token)
             if getattr(session_res, "session", None):
                 st.session_state.sb_access_token = session_res.session.access_token
                 st.session_state.sb_refresh_token = session_res.session.refresh_token
+                auth_key = f"{session_res.session.access_token[:16]}|{session_res.session.refresh_token[:16]}"
+            st.session_state["_sb_auth_key"] = auth_key
         except Exception:
             pass
     return sb
@@ -1584,14 +1610,16 @@ def get_platform_stats():
     Kept uncached because RLS means anonymous and authenticated users can
     legitimately see different counts in the same browser session.
     """
-    sb = get_sb()
-    try:
-        member_count = sb.table("profiles").select("id", count="exact").execute().count or 0
-        post_count   = sb.table("posts").select("id", count="exact").execute().count or 0
-        msg_count    = sb.table("messages").select("id", count="exact").execute().count or 0
-    except Exception:
-        member_count, post_count, msg_count = 0, 0, 0
-    return member_count, post_count, msg_count
+    def load():
+        sb = get_sb()
+        try:
+            member_count = sb.table("profiles").select("id", count="exact").execute().count or 0
+            post_count   = sb.table("posts").select("id", count="exact").execute().count or 0
+            msg_count    = sb.table("messages").select("id", count="exact").execute().count or 0
+        except Exception:
+            member_count, post_count, msg_count = 0, 0, 0
+        return member_count, post_count, msg_count
+    return session_cache_get("platform_stats", 45, load)
 
 def hp(p: str) -> str:
     # Deprecated: password hashing is now handled entirely by Supabase
@@ -1651,14 +1679,16 @@ def linkify_mentions(text: str) -> str:
     return _re.sub(r'@(\w+)', r'<span style="color:var(--yellow);font-weight:600;">@\1</span>', escaped)
 
 def get_unread_mention_count(sb, user_id, source_type=None) -> int:
-    try:
-        q = sb.table("mentions").select("id", count="exact").eq("mentioned_user_id", user_id).eq("is_read", False)
-        if source_type:
-            q = q.eq("source_type", source_type)
-        r = q.execute()
-        return r.count or 0
-    except Exception:
-        return 0
+    def load():
+        try:
+            q = sb.table("mentions").select("id", count="exact").eq("mentioned_user_id", user_id).eq("is_read", False)
+            if source_type:
+                q = q.eq("source_type", source_type)
+            r = q.execute()
+            return r.count or 0
+        except Exception:
+            return 0
+    return session_cache_get(f"mention_count_{user_id}_{source_type or 'all'}", 8, load)
 
 def mark_mentions_read(sb, user_id, source_type=None):
     try:
@@ -1666,6 +1696,7 @@ def mark_mentions_read(sb, user_id, source_type=None):
         if source_type:
             q = q.eq("source_type", source_type)
         q.execute()
+        session_cache_clear(f"mention_count_{user_id}")
     except Exception:
         pass
 
@@ -1696,23 +1727,28 @@ def create_notification(sb, user_id, actor_id, kind, title, body="", source_type
             "source_id": source_id,
             "created_at": datetime.now(timezone.utc).isoformat(),
         }).execute()
+        session_cache_clear(f"notification_count_{user_id}")
     except Exception:
         pass
 
 def get_unread_notification_count(sb, user_id) -> int:
-    try:
-        r = sb.table("notifications").select("id", count="exact").eq("user_id", user_id).eq("is_read", False).execute()
-        return r.count or 0
-    except Exception:
-        return 0
+    def load():
+        try:
+            r = sb.table("notifications").select("id", count="exact").eq("user_id", user_id).eq("is_read", False).execute()
+            return r.count or 0
+        except Exception:
+            return 0
+    return session_cache_get(f"notification_count_{user_id}", 8, load)
 
 def follow_counts(sb, user_id):
-    try:
-        followers = sb.table("user_follows").select("id", count="exact").eq("following_id", user_id).execute().count or 0
-        following = sb.table("user_follows").select("id", count="exact").eq("follower_id", user_id).execute().count or 0
-        return followers, following
-    except Exception:
-        return 0, 0
+    def load():
+        try:
+            followers = sb.table("user_follows").select("id", count="exact").eq("following_id", user_id).execute().count or 0
+            following = sb.table("user_follows").select("id", count="exact").eq("follower_id", user_id).execute().count or 0
+            return followers, following
+        except Exception:
+            return 0, 0
+    return session_cache_get(f"follow_counts_{user_id}", 30, load)
 
 def is_following(sb, follower_id, following_id) -> bool:
     try:
@@ -1720,6 +1756,17 @@ def is_following(sb, follower_id, following_id) -> bool:
         return bool(r.data)
     except Exception:
         return False
+
+def user_activity_counts(sb, user_id):
+    def load():
+        try:
+            posts = sb.table("posts").select("id", count="exact").eq("user_id", user_id).execute().count or 0
+            habits = sb.table("habits").select("id", count="exact").eq("user_id", user_id).execute().count or 0
+            events = sb.table("events").select("id", count="exact").eq("user_id", user_id).execute().count or 0
+            return posts, habits, events
+        except Exception:
+            return 0, 0, 0
+    return session_cache_get(f"user_activity_counts_{user_id}", 30, load)
 
 def report_target(sb, target_type, target_id, reason):
     if not reason or not reason.strip():
@@ -1866,19 +1913,23 @@ def get_recovery_tokens_from_url():
     return "found", access_token, refresh_token
 
 def get_user_profile(user_id):
-    sb = get_sb()
-    result = sb.table("profiles").select("*").eq("id", user_id).execute()
-    return result.data[0] if result.data else None
+    def load():
+        sb = get_sb()
+        result = sb.table("profiles").select("*").eq("id", user_id).execute()
+        return result.data[0] if result.data else None
+    return session_cache_get(f"profile_{user_id}", 30, load)
 
 def get_user_by_username(username):
     if not username:
         return None
-    try:
-        sb = get_sb()
-        result = sb.table("profiles").select("*").eq("username", username).limit(1).execute()
-        return result.data[0] if result.data else None
-    except Exception:
-        return None
+    def load():
+        try:
+            sb = get_sb()
+            result = sb.table("profiles").select("*").eq("username", username).limit(1).execute()
+            return result.data[0] if result.data else None
+        except Exception:
+            return None
+    return session_cache_get(f"profile_username_{username}", 30, load)
 
 # ── Groq AI ──────────────────────────────────────────────
 # ── Groq Chat Completions Helper (OpenAI-compatible) ────────
@@ -2198,6 +2249,7 @@ def view_user_profile(user_id):
     safe_username = escape_html(user.get("username", "user"))
     safe_bio = safe_multiline(user.get("bio") or "No bio yet.")
     followers, following = follow_counts(sb, user["id"])
+    post_total, habit_total, event_total = user_activity_counts(sb, user["id"])
     following_this_user = is_following(sb, st.session_state.user_id, user["id"]) if user["id"] != st.session_state.user_id else False
     
     if st.button("✕ Close Profile", use_container_width=True):
@@ -2228,15 +2280,15 @@ def view_user_profile(user_id):
       
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin:1rem 0;">
         <div class="metric" style="padding:1rem;">
-          <div class="val" style="font-size:1.8rem;">{len(sb.table("posts").select("id").eq("user_id", user["id"]).execute().data or [])}</div>
+          <div class="val" style="font-size:1.8rem;">{post_total}</div>
           <div class="lbl">Posts</div>
         </div>
         <div class="metric" style="padding:1rem;">
-          <div class="val" style="font-size:1.8rem;">{len(sb.table("habits").select("id").eq("user_id", user["id"]).execute().data or [])}</div>
+          <div class="val" style="font-size:1.8rem;">{habit_total}</div>
           <div class="lbl">Habits</div>
         </div>
         <div class="metric" style="padding:1rem;">
-          <div class="val" style="font-size:1.8rem;">{len(sb.table("events").select("id").eq("user_id", user["id"]).execute().data or [])}</div>
+          <div class="val" style="font-size:1.8rem;">{event_total}</div>
           <div class="lbl">Events</div>
         </div>
         <div class="metric" style="padding:1rem;">
@@ -2265,6 +2317,8 @@ def view_user_profile(user_id):
                         "created_at": datetime.now(timezone.utc).isoformat(),
                     }).execute()
                     create_notification(sb, user["id"], st.session_state.user_id, "follow", "New follower", f"@{st.session_state.username} followed you.", "user", st.session_state.user_id)
+                session_cache_clear(f"follow_counts_{user['id']}")
+                session_cache_clear(f"follow_counts_{st.session_state.user_id}")
                 st.rerun()
         with c_msg:
             if st.button(f"Message @{user['username']}", key=f"profile_dm_{user['id']}", use_container_width=True):
@@ -2336,8 +2390,11 @@ def render_member_list():
     """
     sb = get_sb()
     five_ago = (datetime.now(timezone.utc) - timedelta(minutes=5)).isoformat()
-    all_users = sb.table("profiles").select("id,username,last_seen,avatar_url").execute()
-    users = all_users.data or []
+    users = session_cache_get(
+        "member_list_profiles",
+        20,
+        lambda: (sb.table("profiles").select("id,username,last_seen,avatar_url").execute().data or [])
+    )
 
     online = [u for u in users if (u.get("last_seen") or "") > five_ago]
     offline = [u for u in users if (u.get("last_seen") or "") <= five_ago]
@@ -2555,6 +2612,7 @@ def notifications_page():
     with c2:
         if st.button("Mark all read", use_container_width=True):
             sb.table("notifications").update({"is_read": True}).eq("user_id", st.session_state.user_id).eq("is_read", False).execute()
+            session_cache_clear(f"notification_count_{st.session_state.user_id}")
             st.rerun()
 
     if not rows.data:
@@ -2616,6 +2674,8 @@ def discover_page():
                         "created_at": datetime.now(timezone.utc).isoformat(),
                     }).execute()
                     create_notification(sb, u["id"], st.session_state.user_id, "follow", "New follower", f"@{st.session_state.username} followed you.", "user", st.session_state.user_id)
+                session_cache_clear(f"follow_counts_{u['id']}")
+                session_cache_clear(f"follow_counts_{st.session_state.user_id}")
                 st.rerun()
         with c_view:
             if st.button("Profile", key=f"discover_profile_{u['id']}", use_container_width=True):
@@ -2691,14 +2751,16 @@ def get_unread_counts(sb, user_id):
     Returns {sender_id: unread_count} for all unread DMs addressed to
     the current user. Used to show badges in the chat-partner selector.
     """
-    try:
-        rows = sb.table("messages").select("sender_id").eq("receiver_id", user_id).eq("is_read", False).execute()
-        counts = {}
-        for r in (rows.data or []):
-            counts[r["sender_id"]] = counts.get(r["sender_id"], 0) + 1
-        return counts
-    except Exception:
-        return {}
+    def load():
+        try:
+            rows = sb.table("messages").select("sender_id").eq("receiver_id", user_id).eq("is_read", False).execute()
+            counts = {}
+            for r in (rows.data or []):
+                counts[r["sender_id"]] = counts.get(r["sender_id"], 0) + 1
+            return counts
+        except Exception:
+            return {}
+    return session_cache_get(f"dm_unread_{user_id}", 6, load)
 
 
 def set_typing(sb, user_id, target_id):
@@ -2777,6 +2839,7 @@ def render_live_messages_fragment(sb, tid, sel, target_avatar):
     # view the conversation (this is what clears the unread badge).
     try:
         sb.table("messages").update({"is_read": True, "read_at": datetime.now(timezone.utc).isoformat()}).eq("sender_id", tid).eq("receiver_id", st.session_state.user_id).eq("is_read", False).execute()
+        session_cache_clear(f"dm_unread_{st.session_state.user_id}")
     except Exception:
         pass
 
@@ -2953,6 +3016,7 @@ def live_chat_page():
         if result.data and nm:
             record_mentions(sb, nm.strip(), "direct_message", result.data[0]["id"], st.session_state.user_id)
             create_notification(sb, tid, st.session_state.user_id, "message", "New direct message", f"@{st.session_state.username} sent you a message.", "direct_message", result.data[0]["id"])
+        session_cache_clear(f"dm_unread_{tid}")
         st.rerun()
 
 
@@ -3032,32 +3096,38 @@ def calendar_page():
 # ============================================================
 def get_user_channels(sb, user_id):
     """Channels the user has joined, plus all public channels not yet joined."""
-    try:
-        joined = sb.table("channel_members").select("channel_id,last_read_at").eq("user_id", user_id).execute()
-        joined_ids = [r["channel_id"] for r in (joined.data or [])]
-        last_read = {r["channel_id"]: r.get("last_read_at") for r in (joined.data or [])}
-        all_channels = sb.table("channels").select("*").order("created_at").execute()
-        return all_channels.data or [], set(joined_ids), last_read
-    except Exception:
-        return [], set(), {}
+    def load():
+        try:
+            joined = sb.table("channel_members").select("channel_id,last_read_at,role").eq("user_id", user_id).execute()
+            joined_ids = [r["channel_id"] for r in (joined.data or [])]
+            last_read = {r["channel_id"]: r.get("last_read_at") for r in (joined.data or [])}
+            all_channels = sb.table("channels").select("*").order("created_at").execute()
+            return all_channels.data or [], set(joined_ids), last_read
+        except Exception:
+            return [], set(), {}
+    return session_cache_get(f"user_channels_{user_id}", 12, load)
 
 
 def get_channel_unread(sb, channel_id, user_id, last_seen_at):
     """Count of channel messages newer than the user's last-viewed timestamp."""
     if not last_seen_at:
         return 0
-    try:
-        r = sb.table("channel_messages").select("id", count="exact").eq("channel_id", channel_id).gt("created_at", last_seen_at).neq("sender_id", user_id).execute()
-        return r.count or 0
-    except Exception:
-        return 0
+    def load():
+        try:
+            r = sb.table("channel_messages").select("id", count="exact").eq("channel_id", channel_id).gt("created_at", last_seen_at).neq("sender_id", user_id).execute()
+            return r.count or 0
+        except Exception:
+            return 0
+    return session_cache_get(f"channel_unread_{user_id}_{channel_id}_{last_seen_at}", 8, load)
 
 def get_channel_role(sb, channel_id, user_id):
-    try:
-        r = sb.table("channel_members").select("role").eq("channel_id", channel_id).eq("user_id", user_id).limit(1).execute()
-        return (r.data or [{}])[0].get("role", "member")
-    except Exception:
-        return "member"
+    def load():
+        try:
+            r = sb.table("channel_members").select("role").eq("channel_id", channel_id).eq("user_id", user_id).limit(1).execute()
+            return (r.data or [{}])[0].get("role", "member")
+        except Exception:
+            return "member"
+    return session_cache_get(f"channel_role_{user_id}_{channel_id}", 20, load)
 
 
 @st.fragment(run_every=3)
@@ -3133,6 +3203,8 @@ def channels_page():
                     "last_read_at": datetime.now(timezone.utc).isoformat(),
                 }).execute()
                 st.session_state.active_channel = channel["id"]
+                session_cache_clear(f"user_channels_{st.session_state.user_id}")
+                session_cache_clear(f"channel_role_{st.session_state.user_id}_{channel['id']}")
                 st.rerun()
 
     with st.expander("➕ Create a channel", expanded=False):
@@ -3161,6 +3233,7 @@ def channels_page():
                             "last_read_at": datetime.now(timezone.utc).isoformat(),
                         }).execute()
                     st.success(f"#{clean_name} created!")
+                    session_cache_clear(f"user_channels_{st.session_state.user_id}")
                     st.rerun()
 
     if not channels:
@@ -3184,6 +3257,8 @@ def channels_page():
                         "joined_at": datetime.now(timezone.utc).isoformat(),
                         "last_read_at": datetime.now(timezone.utc).isoformat(),
                     }).execute()
+                    session_cache_clear(f"user_channels_{st.session_state.user_id}")
+                    session_cache_clear(f"channel_role_{st.session_state.user_id}_{ch['id']}")
                 st.session_state.active_channel = ch["id"]
                 st.rerun()
 
@@ -3209,6 +3284,8 @@ def channels_page():
                 sb.table("channel_members").update({"last_read_at": datetime.now(timezone.utc).isoformat()})\
                     .eq("channel_id", active_channel["id"]).eq("user_id", st.session_state.user_id).execute()
                 st.session_state[last_seen_key] = now_bucket
+                session_cache_clear(f"user_channels_{st.session_state.user_id}")
+                session_cache_clear(f"channel_unread_{st.session_state.user_id}_{active_channel['id']}")
             except Exception:
                 pass
 
@@ -3226,6 +3303,8 @@ def channels_page():
         if st.button("Leave channel", key=f"leave_{active_channel['id']}"):
             sb.table("channel_members").delete().eq("channel_id", active_channel["id"]).eq("user_id", st.session_state.user_id).execute()
             st.session_state.active_channel = None
+            session_cache_clear(f"user_channels_{st.session_state.user_id}")
+            session_cache_clear(f"channel_role_{st.session_state.user_id}_{active_channel['id']}")
             st.rerun()
 
         render_channel_messages_fragment(sb, active_channel["id"], active_channel["name"])
@@ -3259,6 +3338,7 @@ def channels_page():
             result = sb.table("channel_messages").insert(payload).execute()
             if result.data and msg:
                 record_mentions(sb, msg.strip(), "channel_message", result.data[0]["id"], st.session_state.user_id)
+            session_cache_clear("channel_unread_")
             st.rerun()
 
 
@@ -3567,6 +3647,8 @@ def sidebar():
             active_mark = "● " if st.session_state.page == key else ""
             full_label = f"{active_mark}{icon}  {label}{badge_text}"
             if st.button(full_label, key=f"nav_{key}", use_container_width=True):
+                if st.session_state.page == key:
+                    return
                 st.session_state.page = key
                 st.session_state.viewing_user = None
                 st.rerun()
