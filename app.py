@@ -1577,6 +1577,64 @@ def session_cache_clear(prefix: str = ""):
         if not prefix or k.startswith(prefix):
             cache.pop(k, None)
 
+def init_session_state():
+    defaults = {
+        "logged_in": False,
+        "user": None,
+        "user_id": None,
+        "username": "",
+        "page": "home",
+        "viewing_user": None,
+        "chat_target": None,
+        "_ttl_cache": {},
+    }
+    for key, value in defaults.items():
+        st.session_state.setdefault(key, value)
+
+def set_current_user_session(user: dict):
+    st.session_state.update({
+        "user": user,
+        "user_id": user["id"],
+        "username": user.get("username", "user"),
+        "logged_in": True,
+        "_profile_loaded_at": time.time(),
+    })
+    session_cache_clear(f"profile_{user['id']}")
+    session_cache_clear(f"profile_username_{user.get('username', '')}")
+
+def refresh_current_user_session(sb, ttl: int = 45) -> bool:
+    """Keep auth/profile info in session_state without querying every rerun."""
+    if not st.session_state.get("logged_in") or not st.session_state.get("user_id"):
+        return False
+    if time.time() - st.session_state.get("_profile_loaded_at", 0) < ttl and st.session_state.get("user"):
+        return True
+    try:
+        prof = sb.table("profiles").select("*").eq("id", st.session_state.user_id).limit(1).execute()
+        if not prof.data:
+            return False
+        user = prof.data[0]
+        if user.get("is_banned"):
+            return False
+        set_current_user_session(user)
+        return True
+    except Exception:
+        return bool(st.session_state.get("user"))
+
+def ensure_user_profile_saved(sb, auth_user_id, username, email, bio=""):
+    """Fallback for new accounts if the Supabase trigger has not created profiles yet."""
+    try:
+        sb.table("profiles").upsert({
+            "id": auth_user_id,
+            "username": username,
+            "email": email,
+            "bio": (bio or "")[:200],
+            "last_seen": datetime.now(timezone.utc).isoformat(),
+        }, on_conflict="id", returning=ReturnMethod.minimal).execute()
+        session_cache_clear("member_list_profiles")
+        session_cache_clear("platform_stats")
+    except Exception:
+        pass
+
 def get_sb() -> Client:
     url = get_config("SUPABASE_URL")
     key = get_config("SUPABASE_ANON_KEY") or get_config("SUPABASE_KEY")
@@ -1729,6 +1787,7 @@ def create_notification(sb, user_id, actor_id, kind, title, body="", source_type
             "created_at": datetime.now(timezone.utc).isoformat(),
         }, returning=ReturnMethod.minimal).execute()
         session_cache_clear(f"notification_count_{user_id}")
+        session_cache_clear(f"notifications_page_{user_id}")
     except Exception:
         pass
 
@@ -2109,6 +2168,8 @@ def auth_page():
                 ok = st.form_submit_button("Sign In", use_container_width=True)
 
             if ok:
+                if not check_rate_limit("login", limit=8, seconds=120):
+                    return
                 if not u or not p:
                     st.error("Please fill all fields.")
                     return
@@ -2134,14 +2195,10 @@ def auth_page():
                         sb.auth.sign_out()
                         st.error("Your account has been banned. Contact support if you believe this is an error.")
                         return
-                    st.session_state.update({
-                        "user": user,
-                        "user_id": user["id"],
-                        "username": user["username"],
-                        "logged_in": True,
-                        "viewing_user": None,
-                    })
+                    set_current_user_session(user)
+                    st.session_state.viewing_user = None
                     sb.table("profiles").update({"last_seen": datetime.now(timezone.utc).isoformat()}).eq("id", user["id"]).execute()
+                    session_cache_clear("member_list_profiles")
                     st.rerun()
                 else:
                     st.error("Invalid email or password.")
@@ -2157,6 +2214,8 @@ def auth_page():
                 rok = st.form_submit_button("Create Account", use_container_width=True)
 
             if rok:
+                if not check_rate_limit("signup", limit=3, seconds=300):
+                    return
                 if not nu or not ne or not np1:
                     st.error("Please fill all required fields.")
                     return
@@ -2171,11 +2230,20 @@ def auth_page():
                     st.error("Username must be 3-24 characters using letters, numbers, or underscores.")
                     return
                 try:
-                    sb.auth.sign_up({
+                    auth_res = sb.auth.sign_up({
                         "email": ne.strip(),
                         "password": np1,
                         "options": {"data": {"username": clean_username, "bio": nb}},
                     })
+                    if auth_res and getattr(auth_res, "session", None):
+                        st.session_state.sb_access_token = auth_res.session.access_token
+                        st.session_state.sb_refresh_token = auth_res.session.refresh_token
+                        try:
+                            sb.auth.set_session(auth_res.session.access_token, auth_res.session.refresh_token)
+                        except Exception:
+                            pass
+                    if auth_res and getattr(auth_res, "user", None):
+                        ensure_user_profile_saved(sb, auth_res.user.id, clean_username, ne.strip(), nb)
                     st.success("Account created. Check your email to confirm, then sign in.")
                 except Exception as e:
                     msg = str(e)
@@ -2309,6 +2377,8 @@ def view_user_profile(user_id):
         with c_follow:
             follow_label = "Unfollow" if following_this_user else "Follow"
             if st.button(follow_label, key=f"follow_{user['id']}", use_container_width=True):
+                if not check_rate_limit("follow", limit=20, seconds=60):
+                    return
                 if following_this_user:
                     sb.table("user_follows").delete().eq("follower_id", st.session_state.user_id).eq("following_id", user["id"]).execute()
                 else:
@@ -2551,6 +2621,8 @@ def home_page():
                     label = f"{emoji} {n}" if n else emoji
                     with rcols[i]:
                         if st.button(label, key=f"react_{p['id']}_{emoji}"):
+                            if not check_rate_limit("reaction", limit=40, seconds=60):
+                                return
                             if emoji in mine_reactions:
                                 sb.table("post_reactions").delete().eq("post_id", p["id"]).eq("user_id", st.session_state.user_id).eq("emoji", emoji).execute()
                             else:
@@ -2606,21 +2678,26 @@ def home_page():
 def notifications_page():
     sb = get_sb()
     sh_header("🔔", "Notifications")
-    rows = sb.table("notifications").select("*").eq("user_id", st.session_state.user_id)\
-        .order("created_at", desc=True).limit(50).execute()
+    rows_data = session_cache_get(
+        f"notifications_page_{st.session_state.user_id}",
+        8,
+        lambda: (sb.table("notifications").select("*").eq("user_id", st.session_state.user_id)
+                 .order("created_at", desc=True).limit(50).execute().data or [])
+    )
 
     c1, c2 = st.columns([3, 1])
     with c2:
         if st.button("Mark all read", use_container_width=True):
             sb.table("notifications").update({"is_read": True}).eq("user_id", st.session_state.user_id).eq("is_read", False).execute()
             session_cache_clear(f"notification_count_{st.session_state.user_id}")
+            session_cache_clear(f"notifications_page_{st.session_state.user_id}")
             st.rerun()
 
-    if not rows.data:
+    if not rows_data:
         card("<p style='color:var(--t3);text-align:center;'>No notifications yet.</p>")
         return
 
-    for n in rows.data:
+    for n in rows_data:
         status = "" if n.get("is_read") else "<span class='badge'>New</span>"
         st.markdown(f"""
         <div class="card" style="padding:1rem 1.2rem;">
@@ -2639,17 +2716,24 @@ def discover_page():
     sb = get_sb()
     sh_header("🔎", "Discover")
     q = st.text_input("Search members", placeholder="Search by username or bio...", key="discover_q")
-    query = sb.table("profiles").select("id,username,bio,last_seen,avatar_url,is_admin,is_verified,profile_badge").neq("id", st.session_state.user_id)
     if q and q.strip():
         term = f"%{q.strip()}%"
-        query = query.or_(f"username.ilike.{term},bio.ilike.{term}")
-    users = query.order("last_seen", desc=True).limit(40).execute()
+        users_data = sb.table("profiles").select("id,username,bio,last_seen,avatar_url,is_admin,is_verified,profile_badge")\
+            .neq("id", st.session_state.user_id).or_(f"username.ilike.{term},bio.ilike.{term}")\
+            .order("last_seen", desc=True).limit(40).execute().data or []
+    else:
+        users_data = session_cache_get(
+            f"discover_users_{st.session_state.user_id}",
+            30,
+            lambda: (sb.table("profiles").select("id,username,bio,last_seen,avatar_url,is_admin,is_verified,profile_badge")
+                     .neq("id", st.session_state.user_id).order("last_seen", desc=True).limit(40).execute().data or [])
+        )
 
-    if not users.data:
+    if not users_data:
         card("<p style='color:var(--t3);text-align:center;'>No members found.</p>")
         return
 
-    for u in users.data:
+    for u in users_data:
         followers, _ = follow_counts(sb, u["id"])
         following = is_following(sb, st.session_state.user_id, u["id"])
         safe_username = escape_html(u.get("username", "user"))
@@ -2666,6 +2750,8 @@ def discover_page():
             """, unsafe_allow_html=True)
         with c_follow:
             if st.button("Unfollow" if following else "Follow", key=f"discover_follow_{u['id']}", use_container_width=True):
+                if not check_rate_limit("follow", limit=20, seconds=60):
+                    return
                 if following:
                     sb.table("user_follows").delete().eq("follower_id", st.session_state.user_id).eq("following_id", u["id"]).execute()
                 else:
@@ -2731,6 +2817,8 @@ def ai_chat_page():
         st.rerun()
 
     if sent and prompt and prompt.strip():
+        if not check_rate_limit("ai_prompt", limit=12, seconds=300):
+            return
         st.session_state.ai_msgs.append({"role": "user", "content": prompt.strip()})
 
         # Build a proper chat-format request (system + recent history)
@@ -3016,6 +3104,8 @@ def live_chat_page():
         set_typing(sb, st.session_state.user_id, tid)
 
     if sbtn and (nm and nm.strip() or uploaded):
+        if not check_rate_limit("dm_send", limit=30, seconds=60):
+            return
         payload = {
             "sender_id": st.session_state.user_id, "receiver_id": tid,
             "content": (nm or "").strip() or "📎 Sent an attachment",
@@ -3229,6 +3319,8 @@ def channels_page():
             cn = st.text_input("Channel name", placeholder="general, gaming, study-group...")
             cd = st.text_area("Description", placeholder="What's this channel about?", max_chars=200)
             if st.form_submit_button("Create Channel", use_container_width=True) and cn.strip():
+                if not check_rate_limit("channel_create", limit=4, seconds=300):
+                    return
                 clean_name = _re.sub(r"[^a-z0-9_-]+", "-", cn.strip().lower()).strip("-_")[:32]
                 if not _re.match(r"^[a-z0-9][a-z0-9_-]{1,31}$", clean_name or ""):
                     st.error("Use 2-32 letters, numbers, dashes, or underscores for channel names.")
@@ -3338,6 +3430,8 @@ def channels_page():
                 sbtn = st.form_submit_button("Send", use_container_width=True)
 
         if sbtn and (msg and msg.strip() or uploaded):
+            if not check_rate_limit("channel_send", limit=40, seconds=60):
+                return
             payload = {
                 "channel_id": active_channel["id"],
                 "sender_id": st.session_state.user_id,
@@ -3857,6 +3951,7 @@ def admin_page():
 # MAIN
 # ============================================================
 def main():
+    init_session_state()
     inject_css()
 
     # Check the URL fragment for a Supabase recovery link exactly once
@@ -3894,10 +3989,13 @@ def main():
         auth_page()
         return
 
-    try:
-        get_sb().table("profiles").select("id").limit(1).execute()
-    except Exception as e:
-        st.error(f"DB error: {e}")
+    sb = get_sb()
+    if not refresh_current_user_session(sb):
+        st.session_state.logged_in = False
+        st.session_state.user = None
+        st.session_state.user_id = None
+        st.session_state.username = ""
+        st.error("Your session expired or your profile could not be loaded. Please sign in again.")
         return
 
     try:
