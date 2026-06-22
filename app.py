@@ -16,15 +16,25 @@ import json
 
 load_dotenv()
 
+def get_config(name: str, default=""):
+    """Read settings locally from .env and in Streamlit Cloud from Secrets."""
+    value = os.getenv(name)
+    if value not in (None, ""):
+        return value
+    try:
+        return st.secrets.get(name, default)
+    except Exception:
+        return default
+
 # --- Groq AI Setup (OpenAI-compatible) ---
-GROQ_API_KEY  = os.getenv("GROQ_API_KEY", "")
+GROQ_API_KEY  = get_config("GROQ_API_KEY", "")
 GROQ_BASE_URL = "https://api.groq.com/openai/v1"
 
-APP_NAME = os.getenv("APP_NAME", "LifeHub")
+APP_NAME = get_config("APP_NAME", "LifeHub")
 APP_TAGLINE = "A professional workspace for community, focus, and productivity"
-MAP_LAT  = float(os.getenv("DEFAULT_MAP_LAT", 33.5731))
-MAP_LON  = float(os.getenv("DEFAULT_MAP_LON", -7.5898))
-MAP_ZOOM = int(os.getenv("DEFAULT_MAP_ZOOM", 12))
+MAP_LAT  = float(get_config("DEFAULT_MAP_LAT", 33.5731))
+MAP_LON  = float(get_config("DEFAULT_MAP_LON", -7.5898))
+MAP_ZOOM = int(get_config("DEFAULT_MAP_ZOOM", 12))
 
 # ── Load logo as base64 ──────────────────────────────────────
 def load_logo_b64() -> str:
@@ -1151,6 +1161,198 @@ div[data-testid="stExpander"] {
   overflow: hidden;
 }
 
+/* ============================================================
+   ANIMATED BLUE PRO THEME
+   Motion layer for auth, pages, cards, chat, sidebar, forms.
+   ============================================================ */
+@keyframes appAurora {
+  0% { background-position: 0% 0%, 100% 0%, 0% 50%; }
+  50% { background-position: 100% 50%, 0% 100%, 100% 50%; }
+  100% { background-position: 0% 0%, 100% 0%, 0% 50%; }
+}
+@keyframes floatOrb {
+  0%, 100% { transform: translate3d(0,0,0) scale(1); opacity: .72; }
+  50% { transform: translate3d(28px,-22px,0) scale(1.08); opacity: 1; }
+}
+@keyframes fadeUpSoft {
+  from { opacity: 0; transform: translateY(18px); filter: blur(4px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+@keyframes pulseBlue {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(59,130,246,.18), 0 18px 50px rgba(2,6,23,.32); }
+  50% { box-shadow: 0 0 0 1px rgba(56,189,248,.38), 0 22px 70px rgba(37,99,235,.28); }
+}
+@keyframes borderFlow {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+@keyframes shimmerText {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+@keyframes popIn {
+  from { opacity: 0; transform: scale(.96) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+html, body, .stApp {
+  background:
+    radial-gradient(circle at 15% 12%, rgba(37,99,235,.28), transparent 30%),
+    radial-gradient(circle at 86% 18%, rgba(14,165,233,.24), transparent 28%),
+    radial-gradient(circle at 50% 90%, rgba(30,64,175,.22), transparent 32%),
+    linear-gradient(135deg, #020617, #07111f 42%, #0b1730 100%) !important;
+  background-size: 140% 140%, 150% 150%, 130% 130%, 100% 100% !important;
+  animation: appAurora 18s ease-in-out infinite !important;
+}
+.stApp::before {
+  background:
+    radial-gradient(circle at 20% 25%, rgba(56,189,248,.12), transparent 24%),
+    radial-gradient(circle at 80% 15%, rgba(59,130,246,.16), transparent 26%),
+    linear-gradient(120deg, rgba(255,255,255,.05), transparent 32%, rgba(56,189,248,.04) 64%, transparent) !important;
+  animation: floatOrb 11s ease-in-out infinite !important;
+}
+.stApp::after {
+  opacity: .42;
+  background-image:
+    linear-gradient(rgba(96,165,250,.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(96,165,250,.07) 1px, transparent 1px) !important;
+}
+
+.main .block-container > div {
+  animation: fadeUpSoft .55s ease both;
+}
+
+.brand, .ubadge, .card, .post, .metric, .ev-card,
+.member-panel, .user-profile-card, div[data-testid="stForm"],
+div[data-testid="stExpander"] {
+  animation: popIn .45s ease both;
+}
+
+.brand-name, .hero-title {
+  background: linear-gradient(90deg, #60a5fa, #38bdf8, #818cf8, #60a5fa) !important;
+  background-size: 200% auto !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  animation: shimmerText 4.5s linear infinite !important;
+}
+
+.card, .post, .metric, .ev-card, .user-profile-card,
+.member-panel, div[data-testid="stForm"] {
+  position: relative;
+  overflow: hidden;
+}
+.card::before, .post::after, .metric::before,
+.user-profile-card::before, div[data-testid="stForm"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  background: linear-gradient(110deg, rgba(37,99,235,.0), rgba(56,189,248,.56), rgba(129,140,248,.38), rgba(37,99,235,.0));
+  background-size: 200% 100%;
+  animation: borderFlow 5s linear infinite;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+div[data-testid="stForm"] {
+  background: linear-gradient(180deg, rgba(8,18,38,.92), rgba(15,23,42,.86)) !important;
+  border: 1px solid rgba(96,165,250,.20) !important;
+  border-radius: 20px !important;
+  padding: 1.15rem !important;
+  box-shadow: 0 18px 60px rgba(2,6,23,.42) !important;
+}
+
+.stTabs [data-baseweb="tab-list"] {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  width: 100% !important;
+  gap: .45rem !important;
+  background: rgba(2,6,23,.44) !important;
+  border-color: rgba(96,165,250,.18) !important;
+  margin-bottom: 1rem !important;
+}
+.stTabs [data-baseweb="tab"] {
+  min-width: 0 !important;
+  justify-content: center !important;
+  white-space: normal !important;
+  min-height: 44px !important;
+  font-size: .78rem !important;
+}
+.stTabs [aria-selected="true"] {
+  background: linear-gradient(135deg, rgba(37,99,235,.86), rgba(14,165,233,.70)) !important;
+  color: #fff !important;
+  animation: pulseBlue 2.4s ease-in-out infinite !important;
+}
+
+.stTextInput>div>div>input,
+.stTextArea>div>div>textarea,
+.stNumberInput>div>div>input {
+  min-height: 46px !important;
+  background: rgba(2,6,23,.55) !important;
+  border-color: rgba(96,165,250,.20) !important;
+}
+.stTextInput>div>div>input:hover,
+.stTextArea>div>div>textarea:hover {
+  border-color: rgba(56,189,248,.55) !important;
+}
+.stTextInput label, .stTextArea label, .stSelectbox label,
+.stDateInput label, .stTimeInput label, .stFileUploader label {
+  color: #dbeafe !important;
+  font-weight: 700 !important;
+}
+
+.stButton>button {
+  background: linear-gradient(135deg, #2563eb, #0284c7, #4f46e5) !important;
+  background-size: 180% auto !important;
+  animation: borderFlow 6s linear infinite !important;
+}
+.stButton>button:hover {
+  transform: translateY(-2px) scale(1.015) !important;
+  box-shadow: 0 16px 42px rgba(37,99,235,.38), 0 0 22px rgba(56,189,248,.22) !important;
+}
+
+.post:hover, .card:hover, .metric:hover, .ev-card:hover,
+.member-panel:hover, .user-profile-card:hover {
+  transform: translateY(-5px) scale(1.01) !important;
+  border-color: rgba(56,189,248,.45) !important;
+  box-shadow: 0 26px 75px rgba(2,6,23,.52), 0 0 34px rgba(37,99,235,.16) !important;
+}
+
+.bme, .bother, .msg-group {
+  animation: fadeUpSoft .35s ease both !important;
+}
+.msg-line {
+  transition: background .18s ease, transform .18s ease, color .18s ease !important;
+}
+.msg-line:hover {
+  transform: translateX(3px);
+  color: #eff6ff !important;
+}
+.msg-group.mine .msg-line:hover {
+  transform: translateX(-3px);
+}
+
+.av, .member-row .av-sm {
+  animation: pulseBlue 3.8s ease-in-out infinite !important;
+}
+.status-badge.on {
+  box-shadow: 0 0 0 4px rgba(16,185,129,.12), 0 0 18px rgba(16,185,129,.52);
+}
+
+.auth-copy {
+  color: #bfdbfe;
+  font-size: .92rem;
+  line-height: 1.6;
+  margin: .35rem 0 1rem;
+  padding: .75rem .9rem;
+  border-radius: 14px;
+  background: rgba(37,99,235,.10);
+  border: 1px solid rgba(96,165,250,.16);
+}
+
 @media (max-width: 900px) {
   .main .block-container {
     padding: 1.25rem 1rem 2rem !important;
@@ -1161,6 +1363,9 @@ div[data-testid="stExpander"] {
   .metric .val {
     font-size: 1.8rem;
   }
+  .stTabs [data-baseweb="tab-list"] {
+    grid-template-columns: 1fr !important;
+  }
 }
 </style>
 """, unsafe_allow_html=True)
@@ -1170,10 +1375,10 @@ div[data-testid="stExpander"] {
 # DB + Helpers
 # ============================================================
 def get_sb() -> Client:
-    url = os.getenv("SUPABASE_URL")
-    key = os.getenv("SUPABASE_ANON_KEY") or os.getenv("SUPABASE_KEY")
+    url = get_config("SUPABASE_URL")
+    key = get_config("SUPABASE_ANON_KEY") or get_config("SUPABASE_KEY")
     if not url or not key:
-        st.error("❌ Missing SUPABASE_URL or SUPABASE_ANON_KEY in .env")
+        st.error("❌ Missing SUPABASE_URL or SUPABASE_ANON_KEY. Add them to .env locally or Streamlit Secrets in the cloud.")
         st.stop()
     sb = create_client(url, key)
     access_token = st.session_state.get("sb_access_token")
@@ -1549,7 +1754,7 @@ def auth_page():
                         st.error("Please fill all fields.")
                         return
                     try:
-                        auth_res = sb.auth.sign_in_with_password({"email": u, "password": p})
+                        auth_res = sb.auth.sign_in_with_password({"email": u.strip(), "password": p})
                     except Exception as e:
                         st.error(f"❌ Invalid email or password.")
                         return
@@ -1602,9 +1807,9 @@ def auth_page():
                     if np1 != np2:
                         st.error("Passwords do not match.")
                         return
-                    ex = sb.table("profiles").select("id").eq("username", nu).execute()
-                    if ex.data:
-                        st.error("Username already taken.")
+                    clean_username = _re.sub(r"[^A-Za-z0-9_]", "_", nu.strip())[:24]
+                    if not _re.match(r"^[A-Za-z0-9_]{3,24}$", clean_username):
+                        st.error("Username must be 3-24 characters using letters, numbers, or underscores.")
                         return
                     try:
                         # Supabase Auth creates the auth.users row and
@@ -1612,13 +1817,17 @@ def auth_page():
                         # (see migrate_to_auth.sql) auto-creates the
                         # matching profiles row from this metadata.
                         sb.auth.sign_up({
-                            "email": ne,
+                            "email": ne.strip(),
                             "password": np1,
-                            "options": {"data": {"username": nu, "bio": nb}},
+                            "options": {"data": {"username": clean_username, "bio": nb}},
                         })
                         st.success("✅ Account created! Check your email to confirm, then sign in.")
                     except Exception as e:
-                        st.error(f"Error: {e}")
+                        msg = str(e)
+                        if "already" in msg.lower() or "duplicate" in msg.lower():
+                            st.error("That email or username is already used.")
+                        else:
+                            st.error(f"Could not create account: {e}")
 
         with tab3:
             st.markdown("<p style='color:var(--t2);font-size:.88rem;'>Enter your email and we'll send you a 6-digit reset code.</p>", unsafe_allow_html=True)
@@ -1631,8 +1840,8 @@ def auth_page():
 
             if send_link and re_email:
                 try:
-                    app_url = os.getenv("APP_URL", "http://localhost:8501")
-                    sb.auth.reset_password_for_email(re_email, {"redirect_to": app_url})
+                    app_url = get_config("APP_URL", "http://localhost:8501")
+                    sb.auth.reset_password_for_email(re_email.strip(), {"redirect_to": app_url})
                     st.success("✅ Link sent! Check your inbox (and spam folder), then click the link to set a new password.")
                 except Exception as e:
                     st.error(f"Could not send reset email: {e}")
@@ -1943,13 +2152,13 @@ def home_page():
 def ai_chat_page():
     sh_header("🤖", "AI Assistant")
 
-    api_key = os.getenv("GROQ_API_KEY")
+    api_key = get_config("GROQ_API_KEY")
     if not api_key:
         st.markdown("""
         <div class="card" style="text-align:center;padding:2.5rem;">
           <div style="font-size:2.5rem;margin-bottom:.8rem;">🔑</div>
           <h3 style="margin:0 0 .5rem;color:var(--yellow);">Groq API key missing</h3>
-          <p style="color:var(--t2);">Add <code style="color:var(--yellow);">GROQ_API_KEY</code> to your <code style="color:var(--yellow);">.env</code> file to enable AI chat.</p>
+          <p style="color:var(--t2);">Add <code style="color:var(--yellow);">GROQ_API_KEY</code> to Streamlit Secrets or your local <code style="color:var(--yellow);">.env</code> file to enable AI chat.</p>
         </div>
         """, unsafe_allow_html=True)
         return
