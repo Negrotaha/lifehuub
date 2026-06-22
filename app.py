@@ -1481,6 +1481,23 @@ section[data-testid="stSidebar"] .stButton>button:hover {
   border-color: rgba(96,165,250,.20);
 }
 
+div[role="radiogroup"] {
+  background: rgba(2,6,23,.44);
+  border: 1px solid rgba(96,165,250,.16);
+  border-radius: 18px;
+  padding: .45rem;
+  margin-bottom: 1rem;
+}
+div[role="radiogroup"] label {
+  border-radius: 12px;
+  padding: .45rem .75rem;
+  transition: background .16s ease, transform .16s ease;
+}
+div[role="radiogroup"] label:hover {
+  background: rgba(37,99,235,.18);
+  transform: translateY(-1px);
+}
+
 .auth-hero {
   position: relative;
   padding: 2rem 1rem 1.6rem !important;
@@ -1927,108 +1944,108 @@ def auth_page():
     col_left, col_right = st.columns([1, 1], gap="large")
     
     with col_left:
-        tab1, tab2, tab3 = st.tabs(["🔑  Sign In", "✨  Create Account", "🔁  Forgot Password"])
+        auth_mode = st.radio(
+            "Account action",
+            ["Sign In", "Create Account", "Forgot Password"],
+            horizontal=True,
+            label_visibility="collapsed",
+            key="auth_mode_selector",
+        )
 
-        with tab1:
+        if auth_mode == "Sign In":
+            st.markdown("<div class='auth-copy'>Welcome back. Sign in securely with Supabase Auth.</div>", unsafe_allow_html=True)
             with st.form("lf", clear_on_submit=False):
                 u = st.text_input("Email", placeholder="you@email.com", key="login_user")
                 p = st.text_input("Password", type="password", placeholder="Enter your password", key="login_pass")
-                ok = st.form_submit_button("🚀 Sign In", use_container_width=True)
+                ok = st.form_submit_button("Sign In", use_container_width=True)
 
-                if ok:
-                    if not u or not p:
-                        st.error("Please fill all fields.")
+            if ok:
+                if not u or not p:
+                    st.error("Please fill all fields.")
+                    return
+                try:
+                    auth_res = sb.auth.sign_in_with_password({"email": u.strip(), "password": p})
+                except Exception:
+                    st.error("Invalid email or password.")
+                    return
+                if auth_res and auth_res.user:
+                    if getattr(auth_res, "session", None):
+                        st.session_state.sb_access_token = auth_res.session.access_token
+                        st.session_state.sb_refresh_token = auth_res.session.refresh_token
+                        try:
+                            sb.auth.set_session(auth_res.session.access_token, auth_res.session.refresh_token)
+                        except Exception:
+                            pass
+                    prof = sb.table("profiles").select("*").eq("id", auth_res.user.id).execute()
+                    if not prof.data:
+                        st.error("Account exists but has no profile yet. Run the latest schema.sql in Supabase.")
                         return
-                    try:
-                        auth_res = sb.auth.sign_in_with_password({"email": u.strip(), "password": p})
-                    except Exception as e:
-                        st.error(f"❌ Invalid email or password.")
+                    user = prof.data[0]
+                    if user.get("is_banned"):
+                        sb.auth.sign_out()
+                        st.error("Your account has been banned. Contact support if you believe this is an error.")
                         return
-                    if auth_res and auth_res.user:
-                        if getattr(auth_res, "session", None):
-                            st.session_state.sb_access_token = auth_res.session.access_token
-                            st.session_state.sb_refresh_token = auth_res.session.refresh_token
-                            try:
-                                sb.auth.set_session(auth_res.session.access_token, auth_res.session.refresh_token)
-                            except Exception:
-                                pass
-                        prof = sb.table("profiles").select("*").eq("id", auth_res.user.id).execute()
-                        if not prof.data:
-                            st.error("Account exists but has no profile yet — contact support.")
-                            return
-                        user = prof.data[0]
-                        if user.get("is_banned"):
-                            sb.auth.sign_out()
-                            st.error("🚫 Your account has been banned. Contact support if you believe this is an error.")
-                            return
-                        st.session_state.update({
-                            "user": user,
-                            "user_id": user["id"],
-                            "username": user["username"],
-                            "logged_in": True,
-                            "viewing_user": None,
-                        })
-                        sb.table("profiles").update({"last_seen": datetime.now(timezone.utc).isoformat()}).eq("id", user["id"]).execute()
-                        st.rerun()
-                    else:
-                        st.error("❌ Invalid email or password.")
+                    st.session_state.update({
+                        "user": user,
+                        "user_id": user["id"],
+                        "username": user["username"],
+                        "logged_in": True,
+                        "viewing_user": None,
+                    })
+                    sb.table("profiles").update({"last_seen": datetime.now(timezone.utc).isoformat()}).eq("id", user["id"]).execute()
+                    st.rerun()
+                else:
+                    st.error("Invalid email or password.")
 
-        with tab2:
+        elif auth_mode == "Create Account":
+            st.markdown("<div class='auth-copy'>Create a workspace identity. Your account is managed by Supabase Auth.</div>", unsafe_allow_html=True)
             with st.form("rf", clear_on_submit=True):
                 nu = st.text_input("Choose a username", placeholder="cool_username", key="reg_user")
                 ne = st.text_input("Email address", placeholder="you@email.com", key="reg_email")
                 nb = st.text_area("Tell us about yourself", placeholder="Write a short bio...", max_chars=200, key="reg_bio")
                 np1 = st.text_input("Create password", type="password", placeholder="Minimum 6 characters", key="reg_pass1")
                 np2 = st.text_input("Confirm password", type="password", placeholder="Repeat your password", key="reg_pass2")
+                rok = st.form_submit_button("Create Account", use_container_width=True)
 
-                rok = st.form_submit_button("✨ Create Account", use_container_width=True)
+            if rok:
+                if not nu or not ne or not np1:
+                    st.error("Please fill all required fields.")
+                    return
+                if len(np1) < 6:
+                    st.error("Password must be at least 6 characters.")
+                    return
+                if np1 != np2:
+                    st.error("Passwords do not match.")
+                    return
+                clean_username = _re.sub(r"[^A-Za-z0-9_]", "_", nu.strip())[:24]
+                if not _re.match(r"^[A-Za-z0-9_]{3,24}$", clean_username):
+                    st.error("Username must be 3-24 characters using letters, numbers, or underscores.")
+                    return
+                try:
+                    sb.auth.sign_up({
+                        "email": ne.strip(),
+                        "password": np1,
+                        "options": {"data": {"username": clean_username, "bio": nb}},
+                    })
+                    st.success("Account created. Check your email to confirm, then sign in.")
+                except Exception as e:
+                    msg = str(e)
+                    if "already" in msg.lower() or "duplicate" in msg.lower():
+                        st.error("That email or username is already used.")
+                    else:
+                        st.error(f"Could not create account: {e}")
 
-                if rok:
-                    if not nu or not ne or not np1:
-                        st.error("Please fill all required fields.")
-                        return
-                    if len(np1) < 6:
-                        st.error("Password must be at least 6 characters.")
-                        return
-                    if np1 != np2:
-                        st.error("Passwords do not match.")
-                        return
-                    clean_username = _re.sub(r"[^A-Za-z0-9_]", "_", nu.strip())[:24]
-                    if not _re.match(r"^[A-Za-z0-9_]{3,24}$", clean_username):
-                        st.error("Username must be 3-24 characters using letters, numbers, or underscores.")
-                        return
-                    try:
-                        # Supabase Auth creates the auth.users row and
-                        # sends a confirmation email. A DB trigger
-                        # (see migrate_to_auth.sql) auto-creates the
-                        # matching profiles row from this metadata.
-                        sb.auth.sign_up({
-                            "email": ne.strip(),
-                            "password": np1,
-                            "options": {"data": {"username": clean_username, "bio": nb}},
-                        })
-                        st.success("✅ Account created! Check your email to confirm, then sign in.")
-                    except Exception as e:
-                        msg = str(e)
-                        if "already" in msg.lower() or "duplicate" in msg.lower():
-                            st.error("That email or username is already used.")
-                        else:
-                            st.error(f"Could not create account: {e}")
-
-        with tab3:
-            st.markdown("<p style='color:var(--t2);font-size:.88rem;'>Enter your email and we'll send you a 6-digit reset code.</p>", unsafe_allow_html=True)
-
-            st.markdown("<p style='color:var(--t2);font-size:.88rem;'>Enter your email — we'll send you a link to reset your password.</p>", unsafe_allow_html=True)
-
+        else:
+            st.markdown("<div class='auth-copy'>Enter your email and we’ll send a secure Supabase reset link.</div>", unsafe_allow_html=True)
             with st.form("reset_request_f"):
                 re_email = st.text_input("Email", placeholder="you@email.com", key="reset_email_input")
-                send_link = st.form_submit_button("📧 Send Reset Link", use_container_width=True)
+                send_link = st.form_submit_button("Send Reset Link", use_container_width=True)
 
             if send_link and re_email:
                 try:
                     app_url = get_config("APP_URL", "http://localhost:8501")
                     sb.auth.reset_password_for_email(re_email.strip(), {"redirect_to": app_url})
-                    st.success("✅ Link sent! Check your inbox (and spam folder), then click the link to set a new password.")
+                    st.success("Reset link sent. Check your inbox and spam folder.")
                 except Exception as e:
                     st.error(f"Could not send reset email: {e}")
 
@@ -2165,6 +2182,7 @@ def view_user_profile(user_id):
     if st.button(f"💬 Message @{user['username']}", use_container_width=True):
         st.session_state.page = "live_chat"
         st.session_state.chat_target = user["username"]
+        st.session_state.viewing_user = None
         st.rerun()
 
 
