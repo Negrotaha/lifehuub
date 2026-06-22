@@ -1927,6 +1927,47 @@ def render_cube():
     </div>
     """, unsafe_allow_html=True)
 
+def inject_theme_css():
+    theme = st.session_state.get("theme_mode", "Midnight")
+    if theme == "Ocean":
+        st.markdown("""
+        <style>
+        :root{
+          --bg:#031525; --bg2:#082f49; --card:rgba(8,47,73,.82);
+          --yellow:#38bdf8; --yellow2:#0ea5e9; --yellow3:#0284c7; --yellow4:#7dd3fc;
+          --glow:rgba(14,165,233,.32);
+        }
+        html, body, .stApp {
+          background:
+            radial-gradient(circle at 12% 8%, rgba(14,165,233,.28), transparent 28%),
+            radial-gradient(circle at 88% 12%, rgba(59,130,246,.20), transparent 30%),
+            linear-gradient(135deg, #031525, #082f49 48%, #0f172a 100%) !important;
+        }
+        section[data-testid="stSidebar"] {
+          background: linear-gradient(180deg, rgba(3,21,37,.98), rgba(8,47,73,.96)) !important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown("""
+        <style>
+        :root{
+          --bg:#070b18; --bg2:#0f172a; --card:rgba(15,23,42,.78);
+          --yellow:#5865F2; --yellow2:#4752C4; --yellow3:#3C45A5; --yellow4:#7C83FF;
+          --glow:rgba(88,101,242,.30);
+        }
+        html, body, .stApp {
+          background:
+            radial-gradient(circle at 12% 8%, rgba(88,101,242,.20), transparent 28%),
+            radial-gradient(circle at 88% 12%, rgba(124,58,237,.16), transparent 30%),
+            linear-gradient(135deg, #070b18, #0f172a 55%, #050816 100%) !important;
+        }
+        section[data-testid="stSidebar"] {
+          background: linear-gradient(180deg, rgba(5,8,22,.98), rgba(8,13,31,.96)) !important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+
 def get_recovery_tokens_from_url():
     """
     Supabase's password-reset email link redirects the browser with
@@ -3721,7 +3762,7 @@ def sidebar():
         if avatar_url and avatar_url.startswith("data:image"):
             avatar_inner = f'<img src="{avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">'
         else:
-            avatar_inner = f'<span style="font-size:.8rem;font-weight:800;color:var(--yellow);">{initials}</span>'
+            avatar_inner = f'<span style="font-size:.8rem;font-weight:800;color:var(--yellow);line-height:1;">{initials}</span>'
 
         # Unread counts for badge display
         try:
@@ -3740,9 +3781,12 @@ def sidebar():
 
         st.markdown(f"""
         <div class="ubadge">
-          <span class="av-wrap"><div class="av">{avatar_inner}</div><span class="status-badge on"></span></span>
+          <div class="av-wrap">
+            <div class="av">{avatar_inner}</div>
+            <span class="status-badge on"></span>
+          </div>
           <div style="flex:1;">
-            <div style="font-weight:700;font-size:.9rem;color:var(--yellow);">@{st.session_state.username}</div>
+            <div style="font-weight:700;font-size:.9rem;color:var(--yellow);">@{escape_html(st.session_state.username)}</div>
             <div style="font-size:.7rem;color:var(--yellow);">Active now
               {f'<span style="background:var(--red);color:white;border-radius:99px;padding:.05rem .35rem;font-size:.65rem;font-weight:700;margin-left:.3rem;">{unread_mentions + unread_notifications}</span>' if (unread_mentions + unread_notifications) else ''}
             </div>
@@ -3778,18 +3822,10 @@ def sidebar():
             nav_btn("🛡️", "Admin", "admin")
 
         st.markdown("---")
+        theme_before = st.session_state.get("theme_mode", "Midnight")
         theme = st.radio("Theme", ["Midnight", "Ocean"], horizontal=True, key="theme_mode")
-        if theme == "Ocean":
-            st.markdown("""
-            <style>
-            html, body, .stApp {
-              background:
-                radial-gradient(circle at 12% 8%, rgba(14,165,233,.28), transparent 28%),
-                radial-gradient(circle at 88% 12%, rgba(59,130,246,.20), transparent 30%),
-                linear-gradient(135deg, #031525, #082f49 48%, #0f172a 100%) !important;
-            }
-            </style>
-            """, unsafe_allow_html=True)
+        if theme != theme_before:
+            st.rerun()
 
         member_count, post_count, msg_count = get_platform_stats()
         st.markdown(f"""
@@ -3953,6 +3989,7 @@ def admin_page():
 def main():
     init_session_state()
     inject_css()
+    inject_theme_css()
 
     # Check the URL fragment for a Supabase recovery link exactly once
     # per browser session (not on every rerun — st_javascript has to
