@@ -12,6 +12,7 @@ from PIL import Image
 import streamlit as st
 from dotenv import load_dotenv
 from supabase import create_client, Client
+from postgrest.types import ReturnMethod
 import json
 
 load_dotenv()
@@ -1659,7 +1660,7 @@ def record_mentions(sb, text: str, source_type: str, source_id: str, created_by:
                 "source_id": source_id,
                 "created_by": created_by,
                 "created_at": datetime.now(timezone.utc).isoformat(),
-            }).execute()
+            }, returning=ReturnMethod.minimal).execute()
             create_notification(
                 sb,
                 u["id"],
@@ -1726,7 +1727,7 @@ def create_notification(sb, user_id, actor_id, kind, title, body="", source_type
             "source_type": source_type,
             "source_id": source_id,
             "created_at": datetime.now(timezone.utc).isoformat(),
-        }).execute()
+        }, returning=ReturnMethod.minimal).execute()
         session_cache_clear(f"notification_count_{user_id}")
     except Exception:
         pass
@@ -2765,11 +2766,16 @@ def get_unread_counts(sb, user_id):
 
 def set_typing(sb, user_id, target_id):
     """Upserts a 'typing' heartbeat row, read by the other party's fragment."""
+    key = f"typing_heartbeat_{target_id}"
+    now = time.time()
+    if now - st.session_state.get(key, 0) < 2:
+        return
     try:
         sb.table("typing_status").upsert({
             "user_id": user_id, "target_id": target_id,
             "updated_at": datetime.now(timezone.utc).isoformat(),
         }, on_conflict="user_id,target_id").execute()
+        st.session_state[key] = now
     except Exception:
         pass
 
@@ -2828,28 +2834,32 @@ def render_attachment_html(file_url, file_name, file_type):
             f'color:var(--yellow);text-decoration:none;font-size:.85rem;">📎 {safe_name}</a>')
 
 
-@st.fragment(run_every=3)
+@st.fragment(run_every=1)
 def render_live_messages_fragment(sb, tid, sel, target_avatar):
     """
     Auto-refreshing message list, isolated in its own fragment so only
     this part of the page re-executes every 3 seconds — the rest of
     the page (sidebar, selectbox, send form) stays untouched.
     """
-    # Mark incoming messages from this partner as read the moment we
-    # view the conversation (this is what clears the unread badge).
-    try:
-        sb.table("messages").update({"is_read": True, "read_at": datetime.now(timezone.utc).isoformat()}).eq("sender_id", tid).eq("receiver_id", st.session_state.user_id).eq("is_read", False).execute()
-        session_cache_clear(f"dm_unread_{st.session_state.user_id}")
-    except Exception:
-        pass
+    # Keep receive polling fast: read-status writes are throttled and
+    # do not run on every 1s fragment refresh.
+    read_key = f"dm_read_marked_{tid}"
+    if time.time() - st.session_state.get(read_key, 0) > 12:
+        try:
+            sb.table("messages").update({"is_read": True, "read_at": datetime.now(timezone.utc).isoformat()}).eq("sender_id", tid).eq("receiver_id", st.session_state.user_id).eq("is_read", False).execute()
+            session_cache_clear(f"dm_unread_{st.session_state.user_id}")
+            st.session_state[read_key] = time.time()
+        except Exception:
+            pass
 
-    msgs = sb.table("messages").select("*")\
+    msgs = sb.table("messages").select("id,sender_id,receiver_id,content,created_at,file_url,file_name,file_type")\
         .or_(f"and(sender_id.eq.{st.session_state.user_id},receiver_id.eq.{tid}),and(sender_id.eq.{tid},receiver_id.eq.{st.session_state.user_id})")\
-        .order("created_at", desc=False).limit(50).execute()
+        .order("created_at", desc=True).limit(50).execute()
+    msg_rows = list(reversed(msgs.data or []))
 
     typing = is_other_typing(sb, tid, st.session_state.user_id)
 
-    if not msgs.data and not typing:
+    if not msg_rows and not typing:
         st.markdown("<p style='color:var(--t3);text-align:center;padding:2rem;'>Start the conversation 👋</p>", unsafe_allow_html=True)
         return
 
@@ -2866,7 +2876,7 @@ def render_live_messages_fragment(sb, tid, sel, target_avatar):
     # sender — avatar + name shown once per group, follow-up lines
     # render flush beneath with a hover-only timestamp.
     groups = []
-    for m in msgs.data:
+    for m in msg_rows:
         mine = m["sender_id"] == st.session_state.user_id
         if groups and groups[-1]["mine"] == mine:
             groups[-1]["msgs"].append(m)
@@ -2912,15 +2922,22 @@ def render_live_messages_fragment(sb, tid, sel, target_avatar):
 def live_chat_page():
     sb = get_sb()
     sh_header("💬", "Live Chat")
-    mark_mentions_read(sb, st.session_state.user_id, "direct_message")
+    dm_mentions_key = "dm_mentions_marked"
+    if time.time() - st.session_state.get(dm_mentions_key, 0) > 30:
+        mark_mentions_read(sb, st.session_state.user_id, "direct_message")
+        st.session_state[dm_mentions_key] = time.time()
 
-    users = sb.table("profiles").select("id,username,last_seen,avatar_url").neq("id", st.session_state.user_id).execute()
-    if not users.data:
+    user_rows = session_cache_get(
+        f"dm_users_{st.session_state.user_id}",
+        20,
+        lambda: (sb.table("profiles").select("id,username,last_seen,avatar_url").neq("id", st.session_state.user_id).execute().data or [])
+    )
+    if not user_rows:
         card("<p style='color:var(--t3);text-align:center;'>No other users yet.</p>")
         return
 
     unread = get_unread_counts(sb, st.session_state.user_id)
-    umap = {u["username"]: u for u in users.data}
+    umap = {u["username"]: u for u in user_rows}
 
     def fmt_user(username):
         u = umap[username]
@@ -2995,7 +3012,7 @@ def live_chat_page():
         st.write("")
         sbtn = st.button("Send", key=f"send_dm_{tid}", use_container_width=True)
 
-    if st.session_state.get(f"chat_input_{tid}"):
+    if not sbtn and st.session_state.get(f"chat_input_{tid}"):
         set_typing(sb, st.session_state.user_id, tid)
 
     if sbtn and (nm and nm.strip() or uploaded):
