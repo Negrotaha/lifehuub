@@ -9,6 +9,10 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 DROP TABLE IF EXISTS mentions CASCADE;
+DROP TABLE IF EXISTS notifications CASCADE;
+DROP TABLE IF EXISTS reports CASCADE;
+DROP TABLE IF EXISTS post_comments CASCADE;
+DROP TABLE IF EXISTS user_follows CASCADE;
 DROP TABLE IF EXISTS typing_status CASCADE;
 DROP TABLE IF EXISTS post_reactions CASCADE;
 DROP TABLE IF EXISTS channel_messages CASCADE;
@@ -37,6 +41,8 @@ CREATE TABLE profiles (
     longitude    DOUBLE PRECISION DEFAULT -7.5898,
     is_admin     BOOLEAN DEFAULT FALSE,
     is_banned    BOOLEAN DEFAULT FALSE,
+    is_verified  BOOLEAN DEFAULT FALSE,
+    profile_badge TEXT DEFAULT '',
     last_seen    TIMESTAMPTZ DEFAULT NOW(),
     created_at   TIMESTAMPTZ DEFAULT NOW()
 );
@@ -46,7 +52,29 @@ CREATE TABLE posts (
     user_id    UUID REFERENCES profiles(id) ON DELETE CASCADE,
     username   TEXT NOT NULL,
     content    TEXT NOT NULL CHECK (char_length(content) <= 500),
+    file_url    TEXT,
+    file_name   TEXT,
+    file_type   TEXT CHECK (file_type IS NULL OR file_type IN ('image', 'file')),
+    is_pinned   BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE post_comments (
+    id         UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    post_id    UUID REFERENCES posts(id) ON DELETE CASCADE,
+    user_id    UUID REFERENCES profiles(id) ON DELETE CASCADE,
+    username   TEXT NOT NULL,
+    content    TEXT NOT NULL CHECK (char_length(content) <= 300),
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE user_follows (
+    id           UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    follower_id  UUID REFERENCES profiles(id) ON DELETE CASCADE,
+    following_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+    created_at   TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(follower_id, following_id),
+    CHECK (follower_id <> following_id)
 );
 
 CREATE TABLE post_reactions (
@@ -67,6 +95,7 @@ CREATE TABLE messages (
     file_url    TEXT,
     file_name   TEXT,
     file_type   TEXT CHECK (file_type IS NULL OR file_type IN ('image', 'file')),
+    read_at     TIMESTAMPTZ,
     created_at  TIMESTAMPTZ DEFAULT NOW(),
     CHECK (sender_id <> receiver_id)
 );
@@ -116,6 +145,7 @@ CREATE TABLE channels (
     description TEXT DEFAULT '' CHECK (char_length(description) <= 200),
     created_by  UUID REFERENCES profiles(id) ON DELETE SET NULL,
     is_public   BOOLEAN DEFAULT TRUE,
+    invite_code TEXT UNIQUE DEFAULT substring(replace(gen_random_uuid()::text, '-', '') from 1 for 10),
     created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -123,6 +153,7 @@ CREATE TABLE channel_members (
     id           UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     channel_id   UUID REFERENCES channels(id) ON DELETE CASCADE,
     user_id      UUID REFERENCES profiles(id) ON DELETE CASCADE,
+    role         TEXT DEFAULT 'member' CHECK (role IN ('owner', 'moderator', 'member')),
     joined_at    TIMESTAMPTZ DEFAULT NOW(),
     last_read_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(channel_id, user_id)
@@ -137,6 +168,7 @@ CREATE TABLE channel_messages (
     file_url        TEXT,
     file_name       TEXT,
     file_type       TEXT CHECK (file_type IS NULL OR file_type IN ('image', 'file')),
+    is_pinned       BOOLEAN DEFAULT FALSE,
     created_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -148,6 +180,29 @@ CREATE TABLE mentions (
     created_by        UUID REFERENCES profiles(id) ON DELETE CASCADE,
     is_read           BOOLEAN DEFAULT FALSE,
     created_at        TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE notifications (
+    id         UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id    UUID REFERENCES profiles(id) ON DELETE CASCADE,
+    actor_id   UUID REFERENCES profiles(id) ON DELETE SET NULL,
+    kind       TEXT NOT NULL CHECK (kind IN ('follow', 'comment', 'reaction', 'mention', 'message', 'channel')),
+    title      TEXT NOT NULL,
+    body       TEXT DEFAULT '',
+    source_type TEXT,
+    source_id   UUID,
+    is_read    BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE reports (
+    id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    reporter_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
+    target_type TEXT NOT NULL CHECK (target_type IN ('user', 'post', 'comment', 'message', 'channel', 'channel_message')),
+    target_id   UUID NOT NULL,
+    reason      TEXT NOT NULL CHECK (char_length(reason) <= 300),
+    status      TEXT DEFAULT 'open' CHECK (status IN ('open', 'reviewed', 'dismissed')),
+    created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE OR REPLACE FUNCTION public.handle_lifehub_new_user()
@@ -225,6 +280,8 @@ $$;
 -- tokens after login, so table queries run as the authenticated user.
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE posts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE post_comments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_follows ENABLE ROW LEVEL SECURITY;
 ALTER TABLE post_reactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE typing_status ENABLE ROW LEVEL SECURITY;
@@ -235,6 +292,8 @@ ALTER TABLE channels ENABLE ROW LEVEL SECURITY;
 ALTER TABLE channel_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE channel_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE mentions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE reports ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY profiles_read_authenticated
 ON profiles FOR SELECT TO authenticated
@@ -256,6 +315,35 @@ WITH CHECK (user_id = auth.uid());
 CREATE POLICY posts_delete_owner_or_admin
 ON posts FOR DELETE TO authenticated
 USING (user_id = auth.uid() OR public.is_lifehub_admin(auth.uid()));
+
+CREATE POLICY posts_update_owner_or_admin
+ON posts FOR UPDATE TO authenticated
+USING (user_id = auth.uid() OR public.is_lifehub_admin(auth.uid()))
+WITH CHECK (user_id = auth.uid() OR public.is_lifehub_admin(auth.uid()));
+
+CREATE POLICY post_comments_read_authenticated
+ON post_comments FOR SELECT TO authenticated
+USING (TRUE);
+
+CREATE POLICY post_comments_insert_own
+ON post_comments FOR INSERT TO authenticated
+WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY post_comments_delete_owner_or_admin
+ON post_comments FOR DELETE TO authenticated
+USING (user_id = auth.uid() OR public.is_lifehub_admin(auth.uid()));
+
+CREATE POLICY user_follows_read_authenticated
+ON user_follows FOR SELECT TO authenticated
+USING (TRUE);
+
+CREATE POLICY user_follows_insert_self
+ON user_follows FOR INSERT TO authenticated
+WITH CHECK (follower_id = auth.uid());
+
+CREATE POLICY user_follows_delete_self
+ON user_follows FOR DELETE TO authenticated
+USING (follower_id = auth.uid());
 
 CREATE POLICY post_reactions_read_authenticated
 ON post_reactions FOR SELECT TO authenticated
@@ -360,7 +448,10 @@ USING (TRUE);
 
 CREATE POLICY channel_members_insert_self_or_admin
 ON channel_members FOR INSERT TO authenticated
-WITH CHECK (user_id = auth.uid() OR public.is_lifehub_admin(auth.uid()));
+WITH CHECK (
+    user_id = auth.uid()
+    AND (role = 'member' OR public.is_lifehub_admin(auth.uid()))
+);
 
 CREATE POLICY channel_members_update_self_or_admin
 ON channel_members FOR UPDATE TO authenticated
@@ -395,6 +486,29 @@ CREATE POLICY channel_messages_delete_sender_or_admin
 ON channel_messages FOR DELETE TO authenticated
 USING (sender_id = auth.uid() OR public.is_lifehub_admin(auth.uid()));
 
+CREATE POLICY channel_messages_update_sender_owner_or_admin
+ON channel_messages FOR UPDATE TO authenticated
+USING (
+    sender_id = auth.uid()
+    OR public.is_lifehub_admin(auth.uid())
+    OR EXISTS (
+        SELECT 1 FROM channel_members cm
+        WHERE cm.channel_id = channel_messages.channel_id
+          AND cm.user_id = auth.uid()
+          AND cm.role IN ('owner', 'moderator')
+    )
+)
+WITH CHECK (
+    sender_id = auth.uid()
+    OR public.is_lifehub_admin(auth.uid())
+    OR EXISTS (
+        SELECT 1 FROM channel_members cm
+        WHERE cm.channel_id = channel_messages.channel_id
+          AND cm.user_id = auth.uid()
+          AND cm.role IN ('owner', 'moderator')
+    )
+);
+
 CREATE POLICY mentions_read_related_or_admin
 ON mentions FOR SELECT TO authenticated
 USING (
@@ -416,13 +530,44 @@ CREATE POLICY mentions_delete_admin
 ON mentions FOR DELETE TO authenticated
 USING (public.is_lifehub_admin(auth.uid()));
 
+CREATE POLICY notifications_read_own_or_admin
+ON notifications FOR SELECT TO authenticated
+USING (user_id = auth.uid() OR public.is_lifehub_admin(auth.uid()));
+
+CREATE POLICY notifications_insert_authenticated
+ON notifications FOR INSERT TO authenticated
+WITH CHECK (actor_id = auth.uid() OR actor_id IS NULL OR public.is_lifehub_admin(auth.uid()));
+
+CREATE POLICY notifications_update_own_or_admin
+ON notifications FOR UPDATE TO authenticated
+USING (user_id = auth.uid() OR public.is_lifehub_admin(auth.uid()))
+WITH CHECK (user_id = auth.uid() OR public.is_lifehub_admin(auth.uid()));
+
+CREATE POLICY reports_read_own_or_admin
+ON reports FOR SELECT TO authenticated
+USING (reporter_id = auth.uid() OR public.is_lifehub_admin(auth.uid()));
+
+CREATE POLICY reports_insert_own
+ON reports FOR INSERT TO authenticated
+WITH CHECK (reporter_id = auth.uid());
+
+CREATE POLICY reports_update_admin
+ON reports FOR UPDATE TO authenticated
+USING (public.is_lifehub_admin(auth.uid()))
+WITH CHECK (public.is_lifehub_admin(auth.uid()));
+
 CREATE INDEX idx_profiles_username ON profiles(username);
 CREATE INDEX idx_profiles_last_seen ON profiles(last_seen DESC);
 CREATE INDEX idx_posts_created ON posts(created_at DESC);
+CREATE INDEX idx_posts_pinned_created ON posts(is_pinned DESC, created_at DESC);
 CREATE INDEX idx_posts_user_created ON posts(user_id, created_at DESC);
+CREATE INDEX idx_post_comments_post_created ON post_comments(post_id, created_at);
+CREATE INDEX idx_user_follows_following ON user_follows(following_id);
+CREATE INDEX idx_user_follows_follower ON user_follows(follower_id);
 CREATE INDEX idx_post_reactions_post ON post_reactions(post_id);
 CREATE INDEX idx_messages_pair_created ON messages(sender_id, receiver_id, created_at DESC);
 CREATE INDEX idx_messages_receiver_unread ON messages(receiver_id, is_read, created_at DESC);
+CREATE INDEX idx_messages_receiver_sender_unread ON messages(receiver_id, sender_id, is_read, created_at DESC);
 CREATE INDEX idx_messages_content_trgm ON messages USING gin (content gin_trgm_ops);
 CREATE INDEX idx_typing_status_target ON typing_status(target_id, updated_at DESC);
 CREATE INDEX idx_events_user_date ON events(user_id, event_date);
@@ -431,8 +576,11 @@ CREATE INDEX idx_habit_logs_habit_date ON habit_logs(habit_id, log_date DESC);
 CREATE INDEX idx_channels_created ON channels(created_at);
 CREATE INDEX idx_channel_members_user ON channel_members(user_id);
 CREATE INDEX idx_channel_messages_channel_created ON channel_messages(channel_id, created_at DESC);
+CREATE INDEX idx_channel_messages_pinned ON channel_messages(channel_id, is_pinned DESC, created_at DESC);
 CREATE INDEX idx_channel_messages_content_trgm ON channel_messages USING gin (content gin_trgm_ops);
 CREATE INDEX idx_mentions_user_unread ON mentions(mentioned_user_id, is_read, created_at DESC);
+CREATE INDEX idx_notifications_user_unread ON notifications(user_id, is_read, created_at DESC);
+CREATE INDEX idx_reports_status_created ON reports(status, created_at DESC);
 
 -- After your first signup, grant yourself admin:
 -- UPDATE profiles SET is_admin = true WHERE username = 'your_username';
