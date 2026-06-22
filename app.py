@@ -1162,8 +1162,8 @@ div[data-testid="stExpander"] {
 }
 
 /* ============================================================
-   ANIMATED BLUE PRO THEME
-   Motion layer for auth, pages, cards, chat, sidebar, forms.
+   ENTERPRISE BLUE 3D THEME
+   Lightweight motion layer. No constant card/avatar animations.
    ============================================================ */
 @keyframes appAurora {
   0% { background-position: 0% 0%, 100% 0%, 0% 50%; }
@@ -1201,15 +1201,15 @@ html, body, .stApp {
     radial-gradient(circle at 86% 18%, rgba(14,165,233,.24), transparent 28%),
     radial-gradient(circle at 50% 90%, rgba(30,64,175,.22), transparent 32%),
     linear-gradient(135deg, #020617, #07111f 42%, #0b1730 100%) !important;
-  background-size: 140% 140%, 150% 150%, 130% 130%, 100% 100% !important;
-  animation: appAurora 18s ease-in-out infinite !important;
+  background-size: 100% 100% !important;
+  animation: none !important;
 }
 .stApp::before {
   background:
     radial-gradient(circle at 20% 25%, rgba(56,189,248,.12), transparent 24%),
     radial-gradient(circle at 80% 15%, rgba(59,130,246,.16), transparent 26%),
     linear-gradient(120deg, rgba(255,255,255,.05), transparent 32%, rgba(56,189,248,.04) 64%, transparent) !important;
-  animation: floatOrb 11s ease-in-out infinite !important;
+  animation: none !important;
 }
 .stApp::after {
   opacity: .42;
@@ -1222,18 +1222,12 @@ html, body, .stApp {
   animation: fadeUpSoft .55s ease both;
 }
 
-.brand, .ubadge, .card, .post, .metric, .ev-card,
-.member-panel, .user-profile-card, div[data-testid="stForm"],
-div[data-testid="stExpander"] {
-  animation: popIn .45s ease both;
-}
-
 .brand-name, .hero-title {
   background: linear-gradient(90deg, #60a5fa, #38bdf8, #818cf8, #60a5fa) !important;
   background-size: 200% auto !important;
   -webkit-background-clip: text !important;
   -webkit-text-fill-color: transparent !important;
-  animation: shimmerText 4.5s linear infinite !important;
+  animation: none !important;
 }
 
 .card, .post, .metric, .ev-card, .user-profile-card,
@@ -1250,7 +1244,7 @@ div[data-testid="stExpander"] {
   border-radius: inherit;
   background: linear-gradient(110deg, rgba(37,99,235,.0), rgba(56,189,248,.56), rgba(129,140,248,.38), rgba(37,99,235,.0));
   background-size: 200% 100%;
-  animation: borderFlow 5s linear infinite;
+  animation: none;
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
@@ -1284,7 +1278,7 @@ div[data-testid="stForm"] {
 .stTabs [aria-selected="true"] {
   background: linear-gradient(135deg, rgba(37,99,235,.86), rgba(14,165,233,.70)) !important;
   color: #fff !important;
-  animation: pulseBlue 2.4s ease-in-out infinite !important;
+  animation: none !important;
 }
 
 .stTextInput>div>div>input,
@@ -1307,7 +1301,7 @@ div[data-testid="stForm"] {
 .stButton>button {
   background: linear-gradient(135deg, #2563eb, #0284c7, #4f46e5) !important;
   background-size: 180% auto !important;
-  animation: borderFlow 6s linear infinite !important;
+  animation: none !important;
 }
 .stButton>button:hover {
   transform: translateY(-2px) scale(1.015) !important;
@@ -1322,7 +1316,7 @@ div[data-testid="stForm"] {
 }
 
 .bme, .bother, .msg-group {
-  animation: fadeUpSoft .35s ease both !important;
+  animation: fadeUpSoft .22s ease both !important;
 }
 .msg-line {
   transition: background .18s ease, transform .18s ease, color .18s ease !important;
@@ -1336,7 +1330,7 @@ div[data-testid="stForm"] {
 }
 
 .av, .member-row .av-sm {
-  animation: pulseBlue 3.8s ease-in-out infinite !important;
+  animation: none !important;
 }
 .status-badge.on {
   box-shadow: 0 0 0 4px rgba(16,185,129,.12), 0 0 18px rgba(16,185,129,.52);
@@ -1351,6 +1345,180 @@ div[data-testid="stForm"] {
   border-radius: 14px;
   background: rgba(37,99,235,.10);
   border: 1px solid rgba(96,165,250,.16);
+}
+
+.card, .post, .metric, .ev-card, .member-panel,
+.user-profile-card, div[data-testid="stForm"], .ubadge {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* ============================================================
+   FULL SITE ENTERPRISE REBUILD LAYER
+   Applies to every page: dashboard header, sidebar, cards, chat,
+   admin rows, channels, auth and forms.
+   ============================================================ */
+.main .block-container {
+  padding-top: 1.25rem !important;
+}
+
+.sh {
+  width: 100%;
+  min-height: 112px;
+  margin: 0 0 1.4rem !important;
+  padding: 1.35rem 1.55rem;
+  border-radius: 28px;
+  border: 1px solid rgba(96,165,250,.22);
+  background:
+    linear-gradient(135deg, rgba(15,23,42,.92), rgba(8,47,73,.58)),
+    radial-gradient(circle at 10% 0%, rgba(56,189,248,.18), transparent 34%),
+    radial-gradient(circle at 90% 35%, rgba(37,99,235,.20), transparent 32%);
+  box-shadow: 0 24px 70px rgba(2,6,23,.34), inset 0 1px 0 rgba(255,255,255,.06);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 1rem;
+  align-items: center;
+  transform-style: preserve-3d;
+}
+.sh::after {
+  display: none !important;
+}
+.sh-icon {
+  width: 58px;
+  height: 58px;
+  border-radius: 20px;
+  display: grid;
+  place-items: center;
+  color: #eff6ff;
+  background: linear-gradient(135deg, rgba(37,99,235,.95), rgba(14,165,233,.82));
+  box-shadow: 0 18px 36px rgba(14,165,233,.22), inset 0 1px 0 rgba(255,255,255,.22);
+  transform: translateZ(26px);
+}
+.sh-title {
+  margin: 0;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: clamp(1.55rem, 2.4vw, 2.35rem);
+  font-weight: 900;
+  letter-spacing: -.055em;
+  color: #f8fafc;
+}
+.sh-sub {
+  margin-top: .35rem;
+  color: #bfdbfe;
+  font-size: .92rem;
+  line-height: 1.45;
+  max-width: 780px;
+}
+
+.card, .post, .metric, .ev-card, .user-profile-card,
+.member-panel, div[data-testid="stForm"], div[data-testid="stExpander"] {
+  background:
+    linear-gradient(145deg, rgba(15,23,42,.92), rgba(2,6,23,.72)) !important;
+  border: 1px solid rgba(96,165,250,.18) !important;
+  box-shadow: 0 18px 54px rgba(2,6,23,.28), inset 0 1px 0 rgba(255,255,255,.045) !important;
+}
+
+.card, .post, .metric, .ev-card, .user-profile-card {
+  transform-style: preserve-3d;
+}
+.card:hover, .post:hover, .metric:hover, .ev-card:hover, .user-profile-card:hover {
+  transform: perspective(1000px) rotateX(1.2deg) translateY(-4px) !important;
+}
+
+.stButton>button {
+  min-height: 42px !important;
+  border-radius: 14px !important;
+  background: linear-gradient(135deg, #2563eb, #0891b2) !important;
+  box-shadow: 0 12px 28px rgba(37,99,235,.22), inset 0 1px 0 rgba(255,255,255,.16) !important;
+}
+.stButton>button p {
+  font-weight: 800 !important;
+}
+
+section[data-testid="stSidebar"] .stButton>button {
+  justify-content: flex-start !important;
+  text-align: left !important;
+  min-height: 44px !important;
+  background: rgba(15,23,42,.72) !important;
+  border-color: rgba(96,165,250,.14) !important;
+  box-shadow: none !important;
+}
+section[data-testid="stSidebar"] .stButton>button:hover {
+  background: linear-gradient(135deg, rgba(37,99,235,.65), rgba(8,145,178,.45)) !important;
+  border-color: rgba(125,211,252,.35) !important;
+  transform: translateX(3px) !important;
+}
+
+.stTabs [data-baseweb="tab-list"] {
+  border-radius: 18px !important;
+  padding: .45rem !important;
+}
+.stTabs [data-baseweb="tab"] {
+  min-height: 48px !important;
+}
+
+.msg-group {
+  padding: .65rem .75rem;
+  border-radius: 18px;
+}
+.msg-group:hover {
+  background: rgba(96,165,250,.055);
+}
+
+.member-category, .sb-eyebrow {
+  color: #93c5fd !important;
+}
+
+.brand {
+  border-bottom: 1px solid rgba(96,165,250,.14);
+}
+.brand img {
+  box-shadow: 0 12px 30px rgba(14,165,233,.18);
+}
+
+.auth-copy {
+  background: rgba(8,47,73,.42);
+  border-color: rgba(96,165,250,.20);
+}
+
+.auth-hero {
+  position: relative;
+  padding: 2rem 1rem 1.6rem !important;
+}
+.auth-hero::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: min(560px, 90vw);
+  height: 180px;
+  transform: translateX(-50%);
+  background: radial-gradient(circle, rgba(56,189,248,.16), transparent 62%);
+  pointer-events: none;
+  z-index: -1;
+}
+.auth-product-card {
+  margin-top: -1rem;
+}
+.auth-product-card > div[style*="grid-template-columns"] > div {
+  background: rgba(2,6,23,.48) !important;
+  border: 1px solid rgba(96,165,250,.16) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+}
+
+.stAlert {
+  border-radius: 16px !important;
+}
+
+[data-testid="stVerticalBlock"] > [style*="flex-direction: column"] {
+  gap: .75rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
 }
 
 @media (max-width: 900px) {
@@ -1484,8 +1652,31 @@ def ago(ts: str) -> str:
         return f"{d.days}d ago"
     except: return ""
 
+PAGE_SUBTITLES = {
+    "Home Feed": "Publish updates, discover your community, react to posts, and jump into member profiles.",
+    "AI Assistant": "Ask questions, draft ideas, and get fast help without leaving your workspace.",
+    "Live Chat": "Private conversations with unread badges, attachments, mentions, search, and typing status.",
+    "Calendar": "Plan upcoming events, meetings, reminders, and personal schedules in one clean view.",
+    "Channels": "Team spaces for group chat, file sharing, mentions, and public community rooms.",
+    "Habit Tracker": "Track streaks, weekly progress, shared habits, and personal routines.",
+    "My Profile": "Control your identity, avatar, bio, posts, and account presence.",
+    "Admin Panel": "Moderate members, posts, channels, bans, and workspace access from one control center.",
+}
+
 def sh_header(icon, title):
-    st.markdown(f'<div class="sh">{icon} {title}</div>', unsafe_allow_html=True)
+    subtitle = PAGE_SUBTITLES.get(title, APP_TAGLINE)
+    st.markdown(
+        f"""
+        <section class="sh">
+          <div class="sh-icon">{icon}</div>
+          <div>
+            <h1 class="sh-title">{escape_html(title)}</h1>
+            <div class="sh-sub">{escape_html(subtitle)}</div>
+          </div>
+        </section>
+        """,
+        unsafe_allow_html=True,
+    )
 
 def card(html):
     st.markdown(f'<div class="card">{html}</div>', unsafe_allow_html=True)
@@ -1719,9 +1910,9 @@ def auth_page():
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.markdown(f"""
-        <div style="text-align:center;padding:1rem 0 1.5rem;">
+        <div class="auth-hero" style="text-align:center;padding:1rem 0 1.5rem;">
           {logo_img(100)}
-          <h1 style="font-size:3.5rem;font-weight:900;font-family:'Space Grotesk',sans-serif;
+          <h1 class="hero-title" style="font-size:3.5rem;font-weight:900;font-family:'Space Grotesk',sans-serif;
             background:linear-gradient(135deg, #5865F2, #3C45A5);
             -webkit-background-clip:text;-webkit-text-fill-color:transparent;
             margin:0.5rem 0;">
@@ -1736,11 +1927,6 @@ def auth_page():
     col_left, col_right = st.columns([1, 1], gap="large")
     
     with col_left:
-        st.markdown("""
-        <div style="background:linear-gradient(145deg, var(--card), var(--card2));
-          border-radius:24px;padding:2rem;border:1px solid rgba(88,101,242,0.1);">
-        """, unsafe_allow_html=True)
-        
         tab1, tab2, tab3 = st.tabs(["🔑  Sign In", "✨  Create Account", "🔁  Forgot Password"])
 
         with tab1:
@@ -1846,22 +2032,13 @@ def auth_page():
                 except Exception as e:
                     st.error(f"Could not send reset email: {e}")
 
-        st.markdown('</div>', unsafe_allow_html=True)
-
     with col_right:
-        # Pull real platform stats (cached 30s — see get_platform_stats)
         member_count, post_count, msg_count = get_platform_stats()
 
-        st.markdown("""
-        <div style="background:linear-gradient(145deg, var(--card), var(--card2));
-          border-radius:24px;padding:1.8rem 2rem;border:1px solid rgba(88,101,242,0.1);
-          height:100%;display:flex;flex-direction:column;justify-content:center;text-align:center;">
-        """, unsafe_allow_html=True)
-
-        # Signature 3D element — replaces the old static emoji block
         render_cube()
 
         st.markdown(f"""
+        <div class="card auth-product-card" style="text-align:center;">
           <h3 style="color:var(--yellow);font-family:'Space Grotesk',sans-serif;font-size:1.4rem;margin:0;">
             Everything your community needs in one place.
           </h3>
@@ -1996,8 +2173,7 @@ def view_user_profile(user_id):
 # ============================================================
 def render_member_list():
     """
-    Discord pattern: a categorized member list (ONLINE / OFFLINE)
-    with avatars, shown alongside the main content area.
+    Member list with real buttons so every username can open a profile.
     """
     sb = get_sb()
     five_ago = (datetime.now(timezone.utc) - timedelta(minutes=5)).isoformat()
@@ -2007,27 +2183,33 @@ def render_member_list():
     online = [u for u in users if (u.get("last_seen") or "") > five_ago]
     offline = [u for u in users if (u.get("last_seen") or "") <= five_ago]
 
-    def member_row_html(u, is_online):
+    def render_user_button(u, is_online):
         av = u.get("avatar_url")
         initials = u["username"][:2].upper()
         is_me = u["id"] == st.session_state.user_id
         inner = (f'<img src="{av}" style="width:100%;height:100%;object-fit:cover;">'
                   if av and av.startswith("data:image") else initials)
-        row_cls = "member-row online" if is_online else "member-row"
         status_cls = "on" if is_online else "off"
         label = f'@{escape_html(u["username"])}' + (" (you)" if is_me else "")
-        return (f'<div class="{row_cls}">'
-                f'<span class="av-wrap"><div class="av-sm">{inner}</div><span class="status-badge {status_cls}" style="width:10px;height:10px;border-width:2px;"></span></span>'
-                f'<span class="name">{label}</span></div>')
+        c1, c2 = st.columns([1, 4])
+        with c1:
+            st.markdown(
+                f'<span class="av-wrap"><div class="av-sm">{inner}</div>'
+                f'<span class="status-badge {status_cls}" style="width:10px;height:10px;border-width:2px;"></span></span>',
+                unsafe_allow_html=True,
+            )
+        with c2:
+            if st.button(label, key=f"member_profile_{u['id']}", use_container_width=True):
+                st.session_state.viewing_user = u["id"]
+                st.rerun()
 
-    rows = []
-    rows.append(f'<div class="member-category">Online — {len(online)}</div>')
-    rows += [member_row_html(u, True) for u in online]
+    st.markdown('<div class="member-category">Online — {}</div>'.format(len(online)), unsafe_allow_html=True)
+    for u in online:
+        render_user_button(u, True)
     if offline:
-        rows.append(f'<div class="member-category">Offline — {len(offline)}</div>')
-        rows += [member_row_html(u, False) for u in offline]
-
-    st.markdown(f'<div class="member-panel">{"".join(rows)}</div>', unsafe_allow_html=True)
+        st.markdown('<div class="member-category">Offline — {}</div>'.format(len(offline)), unsafe_allow_html=True)
+        for u in offline:
+            render_user_button(u, False)
 
 
 def get_post_reactions(sb, post_id):
@@ -2352,6 +2534,10 @@ def render_live_messages_fragment(sb, tid, sel, target_avatar):
           </div>
         </div>
         """, unsafe_allow_html=True)
+        if not mine:
+            if st.button(f"View @{sel}", key=f"dm_view_profile_{tid}_{g['msgs'][0]['id']}"):
+                st.session_state.viewing_user = tid
+                st.rerun()
 
     if typing:
         st.markdown(f"""
@@ -2417,18 +2603,24 @@ def live_chat_page():
         avatar_inner = f'<div class="av">{sel[:2].upper()}</div>'
 
     status_cls = "on" if is_onl else "off"
-    st.markdown(f"""
-    <div style="display:flex;align-items:center;gap:.8rem;margin-bottom:1.2rem;
-      padding:1rem 1.4rem;background:var(--card);border-radius:var(--r2);border:1px solid rgba(88,101,242,0.12);">
-      <span class="av-wrap">{avatar_inner}<span class="status-badge {status_cls}"></span></span>
-      <div>
-        <div style="font-weight:700;font-size:1rem;">@{sel}</div>
-        <div style="font-size:.78rem;color:{'var(--yellow)' if is_onl else 'var(--t3)'};">
-          {'Online' if is_onl else 'Offline'}
+    head_col, action_col = st.columns([4, 1])
+    with head_col:
+        st.markdown(f"""
+        <div style="display:flex;align-items:center;gap:.8rem;margin-bottom:1.2rem;
+          padding:1rem 1.4rem;background:var(--card);border-radius:var(--r2);border:1px solid rgba(88,101,242,0.12);">
+          <span class="av-wrap">{avatar_inner}<span class="status-badge {status_cls}"></span></span>
+          <div>
+            <div style="font-weight:700;font-size:1rem;">@{escape_html(sel)}</div>
+            <div style="font-size:.78rem;color:{'var(--yellow)' if is_onl else 'var(--t3)'};">
+              {'Online' if is_onl else 'Offline'}
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
+    with action_col:
+        if st.button("View profile", key=f"dm_header_profile_{tid}", use_container_width=True):
+            st.session_state.viewing_user = tid
+            st.rerun()
 
     render_live_messages_fragment(sb, tid, sel, target_avatar)
 
@@ -2437,19 +2629,14 @@ def live_chat_page():
     with st.expander("📎 Attach a file or image", expanded=False):
         uploaded = st.file_uploader("Choose a file", type=None, key=f"upload_{tid}", label_visibility="collapsed")
 
-    with st.form("cf", clear_on_submit=True):
-        col1, col2 = st.columns([5, 1])
-        with col1:
-            nm = st.text_input(f"Message @{sel}...", placeholder="Type your message...", key="chat_input")
-        with col2:
-            sbtn = st.form_submit_button("Send", use_container_width=True)
+    col1, col2 = st.columns([5, 1])
+    with col1:
+        nm = st.text_input(f"Message @{sel}...", placeholder="Type your message...", key=f"chat_input_{tid}")
+    with col2:
+        st.write("")
+        sbtn = st.button("Send", key=f"send_dm_{tid}", use_container_width=True)
 
-    # Lightweight typing heartbeat: fires once per send-form rerun
-    # while there's draft text. Not perfectly real-time (Streamlit
-    # forms don't push per-keystroke), but updates whenever the user
-    # interacts with the page, which is good enough for a "typing"
-    # signal at this fidelity.
-    if st.session_state.get("chat_input"):
+    if st.session_state.get(f"chat_input_{tid}"):
         set_typing(sb, st.session_state.user_id, tid)
 
     if sbtn and (nm and nm.strip() or uploaded):
@@ -2576,13 +2763,6 @@ def render_channel_messages_fragment(sb, channel_id, channel_name):
     msgs = sb.table("channel_messages").select("*").eq("channel_id", channel_id)\
         .order("created_at", desc=False).limit(75).execute()
 
-    # Persist channel read state so unread badges survive refreshes/logins.
-    try:
-        sb.table("channel_members").update({"last_read_at": datetime.now(timezone.utc).isoformat()})\
-            .eq("channel_id", channel_id).eq("user_id", st.session_state.user_id).execute()
-    except Exception:
-        pass
-
     if not msgs.data:
         st.markdown(f"<p style='color:var(--t3);text-align:center;padding:2rem;'>No messages in #{escape_html(channel_name)} yet. Say hello! 👋</p>", unsafe_allow_html=True)
         return
@@ -2615,6 +2795,10 @@ def render_channel_messages_fragment(sb, channel_id, channel_name):
           </div>
         </div>
         """, unsafe_allow_html=True)
+        if not g["mine"]:
+            if st.button(f"View @{g['username']}", key=f"channel_view_profile_{channel_id}_{g['sender_id']}_{g['msgs'][0]['id']}"):
+                st.session_state.viewing_user = g["sender_id"]
+                st.rerun()
 
 
 def channels_page():
@@ -2661,9 +2845,8 @@ def channels_page():
         for ch in channels:
             is_joined = ch["id"] in joined_ids
             unread = get_channel_unread(sb, ch["id"], st.session_state.user_id, last_read.get(ch["id"])) if is_joined else 0
-            label = f"# {ch['name']}" + (f" 🔴{unread}" if unread else (" ✓" if is_joined else " (join)"))
-            wrap = "nav-active" if st.session_state.get("active_channel") == ch["id"] else "nav-inactive"
-            st.markdown(f'<div class="{wrap}">', unsafe_allow_html=True)
+            active_mark = "● " if st.session_state.get("active_channel") == ch["id"] else ""
+            label = f"{active_mark}# {ch['name']}" + (f" 🔴{unread}" if unread else (" ✓" if is_joined else " (join)"))
             if st.button(label, key=f"ch_{ch['id']}", use_container_width=True):
                 if not is_joined:
                     sb.table("channel_members").insert({
@@ -2673,7 +2856,6 @@ def channels_page():
                     }).execute()
                 st.session_state.active_channel = ch["id"]
                 st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
 
     with col_chat:
         active_id = st.session_state.get("active_channel")
@@ -2689,6 +2871,16 @@ def channels_page():
         if active_channel["id"] not in joined_ids:
             st.info(f"Join #{active_channel['name']} to participate — click it in the list to join.")
             return
+
+        last_seen_key = f"channel_read_marked_{active_channel['id']}"
+        now_bucket = int(time.time() // 30)
+        if st.session_state.get(last_seen_key) != now_bucket:
+            try:
+                sb.table("channel_members").update({"last_read_at": datetime.now(timezone.utc).isoformat()})\
+                    .eq("channel_id", active_channel["id"]).eq("user_id", st.session_state.user_id).execute()
+                st.session_state[last_seen_key] = now_bucket
+            except Exception:
+                pass
 
         safe_channel_name = escape_html(active_channel.get("name", "channel"))
         safe_channel_desc = safe_multiline(active_channel.get("description", ""))
@@ -3011,16 +3203,13 @@ def sidebar():
             st.session_state.page = "home"
 
         def nav_btn(icon, label, key, badge=0):
-            active = st.session_state.page == key
-            wrap = "nav-active" if active else "nav-inactive"
             badge_text = f" 🔴{badge}" if badge else ""
-            full_label = f"{icon}  {label}{badge_text}"
-            st.markdown(f'<div class="{wrap}">', unsafe_allow_html=True)
+            active_mark = "● " if st.session_state.page == key else ""
+            full_label = f"{active_mark}{icon}  {label}{badge_text}"
             if st.button(full_label, key=f"nav_{key}", use_container_width=True):
                 st.session_state.page = key
                 st.session_state.viewing_user = None
                 st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
 
         st.markdown('<div class="sb-eyebrow">Workspace</div>', unsafe_allow_html=True)
         nav_btn("🏠", "Home", "home", badge=unread_mentions)
