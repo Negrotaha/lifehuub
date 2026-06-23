@@ -1628,7 +1628,7 @@ def set_current_user_session(user: dict):
     session_cache_clear(f"profile_{user['id']}")
     session_cache_clear(f"profile_username_{user.get('username', '')}")
 
-def refresh_current_user_session(sb, ttl: int = 45) -> bool:
+def refresh_current_user_session(sb, ttl: int = 300) -> bool:
     """Keep auth/profile info in session_state without querying every rerun."""
     if not st.session_state.get("logged_in") or not st.session_state.get("user_id"):
         return False
@@ -1704,7 +1704,7 @@ def get_platform_stats():
         except Exception:
             member_count, post_count, msg_count = 0, 0, 0
         return member_count, post_count, msg_count
-    return session_cache_get("platform_stats", 45, load)
+    return session_cache_get("platform_stats", 300, load)
 
 def hp(p: str) -> str:
     # Deprecated: password hashing is now handled entirely by Supabase
@@ -1804,7 +1804,7 @@ def get_unread_mention_count(sb, user_id, source_type=None) -> int:
             return r.count or 0
         except Exception:
             return 0
-    return session_cache_get(f"mention_count_{user_id}_{source_type or 'all'}", 8, load)
+    return session_cache_get(f"mention_count_{user_id}_{source_type or 'all'}", 20, load)
 
 def mark_mentions_read(sb, user_id, source_type=None):
     try:
@@ -1855,7 +1855,7 @@ def get_unread_notification_count(sb, user_id) -> int:
             return r.count or 0
         except Exception:
             return 0
-    return session_cache_get(f"notification_count_{user_id}", 8, load)
+    return session_cache_get(f"notification_count_{user_id}", 20, load)
 
 def follow_counts(sb, user_id):
     def load():
@@ -4353,7 +4353,6 @@ def main():
         clear_auth_tokens_from_browser()
         st.error("Your session expired or your profile could not be loaded. Please sign in again.")
         return
-    save_auth_tokens_to_browser()
 
     try:
         profile_param = st.query_params.get("profile")
