@@ -4180,8 +4180,13 @@ def admin_page():
 
     with tab_users:
         st.markdown("### All Members")
-        users = sb.table("profiles").select("id,username,email,is_admin,is_banned,is_verified,profile_badge,created_at,last_seen").order("created_at", desc=True).execute()
-        for u in (users.data or []):
+        users_data = session_cache_get(
+            "admin_users",
+            30,
+            lambda: (sb.table("profiles").select("id,username,email,is_admin,is_banned,is_verified,profile_badge,created_at,last_seen")
+                     .order("created_at", desc=True).execute().data or [])
+        )
+        for u in users_data:
             is_me = u["id"] == st.session_state.user_id
             five_ago = (datetime.now(timezone.utc) - timedelta(minutes=5)).isoformat()
             is_onl = (u.get("last_seen") or "") > five_ago
@@ -4204,11 +4209,13 @@ def admin_page():
                     action = "Unban" if u.get("is_banned") else "Ban"
                     if st.button(action, key=f"ban_{u['id']}"):
                         sb.table("profiles").update({"is_banned": not u.get("is_banned", False)}).eq("id", u["id"]).execute()
+                        session_cache_clear("admin_users")
                         st.rerun()
                 with col_b:
                     admin_action = "Remove Admin" if u.get("is_admin") else "Make Admin"
                     if st.button(admin_action, key=f"adm_{u['id']}"):
                         sb.table("profiles").update({"is_admin": not u.get("is_admin", False)}).eq("id", u["id"]).execute()
+                        session_cache_clear("admin_users")
                         st.rerun()
                 with col_v:
                     verify_action = "Unverify" if u.get("is_verified") else "Verify"
@@ -4217,17 +4224,24 @@ def admin_page():
                             "is_verified": not u.get("is_verified", False),
                             "profile_badge": "Verified" if not u.get("is_verified", False) else "",
                         }).eq("id", u["id"]).execute()
+                        session_cache_clear("admin_users")
                         st.rerun()
                 with col_ba:
                     if st.button("Del Posts", key=f"delpost_{u['id']}"):
                         sb.table("posts").delete().eq("user_id", u["id"]).execute()
                         st.success(f"Deleted all posts by @{u['username']}")
+                        session_cache_clear("admin_posts")
+                        session_cache_clear("home_feed_")
                         st.rerun()
 
     with tab_posts:
         st.markdown("### Recent Posts (All Users)")
-        posts = sb.table("posts").select("*").order("created_at", desc=True).limit(50).execute()
-        for p in (posts.data or []):
+        posts_data = session_cache_get(
+            "admin_posts",
+            20,
+            lambda: (sb.table("posts").select("id,username,content,created_at").order("created_at", desc=True).limit(50).execute().data or [])
+        )
+        for p in posts_data:
             safe_username = escape_html(p.get("username", "user"))
             safe_content = linkify_mentions((p.get("content") or "")[:200])
             col_p, col_d = st.columns([5, 1])
@@ -4242,17 +4256,36 @@ def admin_page():
             with col_d:
                 if st.button("🗑️", key=f"admdelp_{p['id']}"):
                     sb.table("posts").delete().eq("id", p["id"]).execute()
+                    session_cache_clear("admin_posts")
+                    session_cache_clear("home_feed_")
                     st.rerun()
 
     with tab_channels:
         st.markdown("### Manage Channels")
-        channels = sb.table("channels").select("*").order("created_at").execute()
-        for ch in (channels.data or []):
+        channels_data = session_cache_get(
+            "admin_channels",
+            30,
+            lambda: (sb.table("channels").select("id,name,description,created_at").order("created_at").execute().data or [])
+        )
+        channel_ids = [ch["id"] for ch in channels_data]
+        def load_channel_member_counts():
+            if not channel_ids:
+                return {}
+            try:
+                rows = sb.table("channel_members").select("channel_id").in_("channel_id", channel_ids).execute().data or []
+                counts = {}
+                for row in rows:
+                    counts[row["channel_id"]] = counts.get(row["channel_id"], 0) + 1
+                return counts
+            except Exception:
+                return {}
+        channel_member_counts = session_cache_get("admin_channel_member_counts", 30, load_channel_member_counts)
+        for ch in channels_data:
             safe_channel_name = escape_html(ch.get("name", "channel"))
             safe_channel_desc = safe_multiline(ch.get("description", ""))
             col_c, col_dc = st.columns([4, 1])
             with col_c:
-                member_count = sb.table("channel_members").select("id", count="exact").eq("channel_id", ch["id"]).execute().count or 0
+                member_count = channel_member_counts.get(ch["id"], 0)
                 st.markdown(f"""
                 <div style="background:var(--card);border-radius:var(--r);padding:.8rem 1rem;margin-bottom:.3rem;">
                   <span style="color:var(--yellow);font-weight:700;"># {safe_channel_name}</span>
@@ -4263,14 +4296,22 @@ def admin_page():
             with col_dc:
                 if st.button("🗑️", key=f"admdelch_{ch['id']}"):
                     sb.table("channels").delete().eq("id", ch["id"]).execute()
+                    session_cache_clear("admin_channels")
+                    session_cache_clear("admin_channel_member_counts")
+                    session_cache_clear("user_channels_")
                     st.rerun()
 
     with tab_reports:
         st.markdown("### Open Reports")
-        reports = sb.table("reports").select("*").order("created_at", desc=True).limit(80).execute()
-        if not reports.data:
+        reports_data = session_cache_get(
+            "admin_reports",
+            20,
+            lambda: (sb.table("reports").select("id,target_type,target_id,reason,status,created_at")
+                     .order("created_at", desc=True).limit(80).execute().data or [])
+        )
+        if not reports_data:
             st.caption("No reports yet.")
-        for r in (reports.data or []):
+        for r in reports_data:
             st.markdown(f"""
             <div class="card" style="padding:1rem 1.2rem;">
               <div style="display:flex;justify-content:space-between;gap:1rem;">
@@ -4287,10 +4328,12 @@ def admin_page():
             with c1:
                 if st.button("Mark reviewed", key=f"review_report_{r['id']}", use_container_width=True):
                     sb.table("reports").update({"status": "reviewed"}).eq("id", r["id"]).execute()
+                    session_cache_clear("admin_reports")
                     st.rerun()
             with c2:
                 if st.button("Dismiss", key=f"dismiss_report_{r['id']}", use_container_width=True):
                     sb.table("reports").update({"status": "dismissed"}).eq("id", r["id"]).execute()
+                    session_cache_clear("admin_reports")
                     st.rerun()
 
 
@@ -4334,19 +4377,21 @@ def main():
         return
 
     if not st.session_state.get("logged_in"):
-        restore_state = restore_login_from_saved_tokens()
-        if restore_state == "pending":
-            st.markdown(f"""
-            <div style="text-align:center;padding:4rem 0;">
-              {logo_img(70)}
-              <p style="color:var(--t3);margin-top:1rem;">Restoring your session...</p>
-            </div>
-            """, unsafe_allow_html=True)
-            return
-        if restore_state == "restored":
-            st.rerun()
-        if restore_state == "invalid":
-            clear_auth_tokens_from_browser()
+        if not st.session_state.get("_saved_login_checked"):
+            restore_state = restore_login_from_saved_tokens()
+            if restore_state == "pending":
+                st.markdown(f"""
+                <div style="text-align:center;padding:4rem 0;">
+                  {logo_img(70)}
+                  <p style="color:var(--t3);margin-top:1rem;">Restoring your session...</p>
+                </div>
+                """, unsafe_allow_html=True)
+                return
+            st.session_state["_saved_login_checked"] = True
+            if restore_state == "restored":
+                st.rerun()
+            if restore_state == "invalid":
+                clear_auth_tokens_from_browser()
         auth_page()
         return
 
