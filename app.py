@@ -2732,7 +2732,7 @@ def get_home_feed_data(sb, user_id):
                 .order("is_pinned", desc=True).order("created_at", desc=True).limit(15).execute().data or []
             post_ids = [p["id"] for p in posts]
             if not post_ids:
-                return [], {}, {}, {}
+                return [], {}, {}, {}, {}
 
             reaction_rows = sb.table("post_reactions").select("post_id,emoji,user_id").in_("post_id", post_ids).execute().data or []
             comment_rows = sb.table("post_comments").select("post_id,user_id,username,content,created_at")\
@@ -3630,10 +3630,10 @@ def channels_page():
                     if result.data:
                         sb.table("channel_members").insert({
                             "channel_id": result.data[0]["id"], "user_id": st.session_state.user_id,
-                            "role": "owner",
+                            "role": "member",
                             "joined_at": datetime.now(timezone.utc).isoformat(),
                             "last_read_at": datetime.now(timezone.utc).isoformat(),
-                        }).execute()
+                        }, returning=ReturnMethod.minimal).execute()
                     st.success(f"#{clean_name} created!")
                     session_cache_clear(f"user_channels_{st.session_state.user_id}")
                     st.rerun()
