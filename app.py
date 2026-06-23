@@ -2121,16 +2121,16 @@ def save_auth_tokens_to_browser():
         "access_token": access_token,
         "refresh_token": refresh_token,
     })
-    st_javascript(f"""
-    (() => {{
-      try {{
-        window.parent.localStorage.setItem("lifehub_auth_tokens", {json.dumps(payload)});
-        return "ok";
-      }} catch (e) {{
-        return "error";
-      }}
-    }})()
-    """)
+    st.components.v1.html(
+        f"""
+        <script>
+        try {{
+          window.parent.localStorage.setItem("lifehub_auth_tokens", {json.dumps(payload)});
+        }} catch (e) {{}}
+        </script>
+        """,
+        height=0,
+    )
     st.session_state["_browser_auth_saved_key"] = auth_key
 
 def clear_auth_tokens_from_browser():
@@ -4356,12 +4356,8 @@ def main():
             st.session_state.recovery_access_token = access_token
             st.session_state.recovery_refresh_token = refresh_token
             st.session_state.recovery_check_done = True
-        elif status == "none":
+        else:
             st.session_state.recovery_check_done = True
-        # status == "pending": leave recovery_check_done unset — the
-        # st_javascript component triggers its own rerun once the
-        # browser responds, which will re-enter this branch with a
-        # real "found" or "none" answer.
 
     if st.session_state.get("recovery_access_token"):
         reset_password_page()
@@ -4379,14 +4375,6 @@ def main():
     if not st.session_state.get("logged_in"):
         if not st.session_state.get("_saved_login_checked"):
             restore_state = restore_login_from_saved_tokens()
-            if restore_state == "pending":
-                st.markdown(f"""
-                <div style="text-align:center;padding:4rem 0;">
-                  {logo_img(70)}
-                  <p style="color:var(--t3);margin-top:1rem;">Restoring your session...</p>
-                </div>
-                """, unsafe_allow_html=True)
-                return
             st.session_state["_saved_login_checked"] = True
             if restore_state == "restored":
                 st.rerun()
