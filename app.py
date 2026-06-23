@@ -1539,6 +1539,32 @@ div[role="radiogroup"] label:hover {
   }
 }
 
+/* Performance mode: keep the premium look, but remove costly page-wide
+   animations/transforms that make Streamlit reruns and scrolling feel laggy. */
+.stApp::before,
+.stApp::after {
+  opacity: .65 !important;
+}
+.main .block-container > div,
+.bme, .bother, .msg-group,
+.auth-hero, .hero-logo-img, .hero-logo-emoji,
+.metric .val, .badge, .cube, .av::before {
+  animation: none !important;
+}
+.card, .post, .metric, .ev-card, .member-panel,
+.user-profile-card, div[data-testid="stForm"], .ubadge,
+.stButton > button, .stTextInput input, .stTextArea textarea {
+  transition: border-color .12s ease, background .12s ease, box-shadow .12s ease !important;
+  will-change: auto !important;
+}
+.card:hover, .post:hover, .metric:hover, .ev-card:hover, .ubadge:hover,
+.stButton > button:hover, .stTextInput input:focus, .stTextArea textarea:focus {
+  transform: none !important;
+}
+.cube {
+  transform: rotateX(-20deg) rotateY(35deg) !important;
+}
+
 @media (max-width: 900px) {
   .main .block-container {
     padding: 1.25rem 1rem 2rem !important;
@@ -1827,6 +1853,14 @@ def user_activity_counts(sb, user_id):
         except Exception:
             return 0, 0, 0
     return session_cache_get(f"user_activity_counts_{user_id}", 30, load)
+
+def user_sent_message_count(sb, user_id):
+    def load():
+        try:
+            return sb.table("messages").select("id", count="exact").eq("sender_id", user_id).execute().count or 0
+        except Exception:
+            return 0
+    return session_cache_get(f"user_sent_message_count_{user_id}", 30, load)
 
 def report_target(sb, target_type, target_id, reason):
     if not reason or not reason.strip():
@@ -2505,18 +2539,16 @@ def render_member_list():
     users = session_cache_get(
         "member_list_profiles",
         20,
-        lambda: (sb.table("profiles").select("id,username,last_seen,avatar_url").execute().data or [])
+        lambda: (sb.table("profiles").select("id,username,last_seen").execute().data or [])
     )
 
     online = [u for u in users if (u.get("last_seen") or "") > five_ago]
     offline = [u for u in users if (u.get("last_seen") or "") <= five_ago]
 
     def render_user_button(u, is_online):
-        av = u.get("avatar_url")
         initials = u["username"][:2].upper()
         is_me = u["id"] == st.session_state.user_id
-        inner = (f'<img src="{av}" style="width:100%;height:100%;object-fit:cover;">'
-                  if av and av.startswith("data:image") else initials)
+        inner = escape_html(initials)
         status_cls = "on" if is_online else "off"
         label = f'@{escape_html(u["username"])}' + (" (you)" if is_me else "")
         c1, c2 = st.columns([1, 4])
@@ -2556,6 +2588,41 @@ def get_post_reactions(sb, post_id):
 
 REACTION_EMOJIS = ["❤️", "👍", "😂", "🔥"]
 
+def get_home_feed_data(sb, user_id):
+    """Batch-load home feed data to avoid per-post Supabase queries."""
+    def load():
+        try:
+            posts = sb.table("posts")\
+                .select("id,user_id,username,content,created_at,file_url,file_name,file_type,is_pinned")\
+                .order("is_pinned", desc=True).order("created_at", desc=True).limit(15).execute().data or []
+            post_ids = [p["id"] for p in posts]
+            if not post_ids:
+                return [], {}, {}, {}
+
+            reaction_rows = sb.table("post_reactions").select("post_id,emoji,user_id").in_("post_id", post_ids).execute().data or []
+            comment_rows = sb.table("post_comments").select("post_id,username,content,created_at")\
+                .in_("post_id", post_ids).order("created_at").limit(120).execute().data or []
+
+            reaction_counts = {}
+            my_reactions = {}
+            for r in reaction_rows:
+                pid = r["post_id"]
+                reaction_counts.setdefault(pid, {})
+                reaction_counts[pid][r["emoji"]] = reaction_counts[pid].get(r["emoji"], 0) + 1
+                if r["user_id"] == user_id:
+                    my_reactions.setdefault(pid, set()).add(r["emoji"])
+
+            comments_by_post = {}
+            for c in comment_rows:
+                bucket = comments_by_post.setdefault(c["post_id"], [])
+                if len(bucket) < 30:
+                    bucket.append(c)
+
+            return posts, reaction_counts, my_reactions, comments_by_post
+        except Exception:
+            return [], {}, {}, {}
+    return session_cache_get(f"home_feed_{user_id}", 8, load)
+
 def home_page():
     sb = get_sb()
     sh_header("🏠", "Home Feed")
@@ -2575,7 +2642,7 @@ def home_page():
               <div style="color:var(--red);font-weight:700;font-size:.85rem;">🔔 {mention_count} Mention{"s" if mention_count>1 else ""}</div>
             </div>
             """, unsafe_allow_html=True)
-            mentions = sb2.table("mentions").select("*").eq("mentioned_user_id", st.session_state.user_id).eq("is_read", False).eq("source_type", "post").order("created_at", desc=True).limit(5).execute()
+            mentions = sb2.table("mentions").select("id").eq("mentioned_user_id", st.session_state.user_id).eq("is_read", False).eq("source_type", "post").order("created_at", desc=True).limit(5).execute()
             if mentions.data:
                 mark_mentions_read(sb2, st.session_state.user_id, "post")
             if st.button("Clear mentions", key="clear_mentions"):
@@ -2617,10 +2684,14 @@ def home_page():
                     }).execute()
                     if result.data:
                         record_mentions(sb, content_to_post, "post", result.data[0]["id"], st.session_state.user_id)
+                    session_cache_clear("home_feed_")
+                    session_cache_clear("platform_stats")
+                    session_cache_clear(f"profile_posts_{st.session_state.user_id}")
+                    session_cache_clear(f"user_activity_counts_{st.session_state.user_id}")
                     st.rerun()
 
-        posts = sb.table("posts").select("*").order("is_pinned", desc=True).order("created_at", desc=True).limit(25).execute()
-        if not posts.data:
+        posts, reaction_counts, my_reactions, comments_by_post = get_home_feed_data(sb, st.session_state.user_id)
+        if not posts:
             card("""
             <div style="text-align:center;padding:4rem 0;">
               <div style="font-size:5rem;margin-bottom:1.5rem;">🚀</div>
@@ -2630,7 +2701,7 @@ def home_page():
             """)
             return
 
-        for p in posts.data:
+        for p in posts:
             mine = p["user_id"] == st.session_state.user_id
             initials = p["username"][:2].upper()
             safe_username = escape_html(p.get("username", "user"))
@@ -2655,7 +2726,8 @@ def home_page():
                 """, unsafe_allow_html=True)
 
                 # Reactions row
-                counts, mine_reactions = get_post_reactions(sb, p["id"])
+                counts = reaction_counts.get(p["id"], {})
+                mine_reactions = my_reactions.get(p["id"], set())
                 rcols = st.columns(len(REACTION_EMOJIS) + 1)
                 for i, emoji in enumerate(REACTION_EMOJIS):
                     n = counts.get(emoji, 0)
@@ -2672,12 +2744,13 @@ def home_page():
                                     "created_at": datetime.now(timezone.utc).isoformat(),
                                 }).execute()
                                 create_notification(sb, p["user_id"], st.session_state.user_id, "reaction", "New reaction", f"@{st.session_state.username} reacted {emoji} to your post.", "post", p["id"])
+                            session_cache_clear("home_feed_")
                             st.rerun()
 
                 with st.expander("Comments and moderation", expanded=False):
-                    comments = sb.table("post_comments").select("*").eq("post_id", p["id"]).order("created_at").limit(30).execute()
-                    if comments.data:
-                        for cm in comments.data:
+                    comments = comments_by_post.get(p["id"], [])
+                    if comments:
+                        for cm in comments:
                             st.markdown(f"**@{escape_html(cm['username'])}** · {ago(cm['created_at'])}<br>{linkify_mentions(cm['content'])}", unsafe_allow_html=True)
                     else:
                         st.caption("No comments yet.")
@@ -2696,12 +2769,14 @@ def home_page():
                             }).execute()
                             if res.data:
                                 create_notification(sb, p["user_id"], st.session_state.user_id, "comment", "New comment", f"@{st.session_state.username} commented on your post.", "post", p["id"])
+                            session_cache_clear("home_feed_")
                             st.rerun()
 
                     mod_cols = st.columns(3)
                     with mod_cols[0]:
                         if (mine or st.session_state.user.get("is_admin")) and st.button("Unpin" if p.get("is_pinned") else "Pin", key=f"pin_post_{p['id']}"):
                             sb.table("posts").update({"is_pinned": not p.get("is_pinned", False)}).eq("id", p["id"]).execute()
+                            session_cache_clear("home_feed_")
                             st.rerun()
                     with mod_cols[1]:
                         reason = st.text_input("Report reason", key=f"report_post_reason_{p['id']}", label_visibility="collapsed", placeholder="Report reason")
@@ -2774,9 +2849,31 @@ def discover_page():
         card("<p style='color:var(--t3);text-align:center;'>No members found.</p>")
         return
 
+    user_ids = [u["id"] for u in users_data]
+    def load_discover_social():
+        if not user_ids:
+            return {}, set()
+        try:
+            rows = sb.table("user_follows").select("follower_id,following_id").in_("following_id", user_ids).execute().data or []
+            follower_counts = {}
+            following_set = set()
+            for row in rows:
+                following_id = row["following_id"]
+                follower_counts[following_id] = follower_counts.get(following_id, 0) + 1
+                if row["follower_id"] == st.session_state.user_id:
+                    following_set.add(following_id)
+            return follower_counts, following_set
+        except Exception:
+            return {}, set()
+    follower_counts, following_set = session_cache_get(
+        f"discover_social_{st.session_state.user_id}_{hash(tuple(user_ids))}",
+        20,
+        load_discover_social,
+    )
+
     for u in users_data:
-        followers, _ = follow_counts(sb, u["id"])
-        following = is_following(sb, st.session_state.user_id, u["id"])
+        followers = follower_counts.get(u["id"], 0)
+        following = u["id"] in following_set
         safe_username = escape_html(u.get("username", "user"))
         safe_bio = safe_multiline(u.get("bio") or "No bio yet.")
         c_info, c_follow, c_view = st.columns([4, 1, 1])
@@ -2804,6 +2901,7 @@ def discover_page():
                     create_notification(sb, u["id"], st.session_state.user_id, "follow", "New follower", f"@{st.session_state.username} followed you.", "user", st.session_state.user_id)
                 session_cache_clear(f"follow_counts_{u['id']}")
                 session_cache_clear(f"follow_counts_{st.session_state.user_id}")
+                session_cache_clear(f"discover_social_{st.session_state.user_id}")
                 st.rerun()
         with c_view:
             if st.button("Profile", key=f"discover_profile_{u['id']}", use_container_width=True):
@@ -2919,7 +3017,7 @@ def is_other_typing(sb, other_id, my_id):
         return False
 
 
-def file_to_data_uri(uploaded_file, max_dim=800) -> dict:
+def file_to_data_uri(uploaded_file, max_dim=640) -> dict:
     """
     Converts an uploaded file to a base64 data URI, same storage
     pattern already used for avatars. Images are resized to cap size;
@@ -2935,7 +3033,10 @@ def file_to_data_uri(uploaded_file, max_dim=800) -> dict:
             img.thumbnail((max_dim, max_dim))
             buf = io.BytesIO()
             fmt = "PNG" if ext in ("png", "gif") else "JPEG"
-            img.convert("RGB" if fmt == "JPEG" else "RGBA").save(buf, format=fmt)
+            save_kwargs = {"optimize": True}
+            if fmt == "JPEG":
+                save_kwargs["quality"] = 75
+            img.convert("RGB" if fmt == "JPEG" else "RGBA").save(buf, format=fmt, **save_kwargs)
             b64 = base64.b64encode(buf.getvalue()).decode()
             mime = "image/png" if fmt == "PNG" else "image/jpeg"
             return {"url": f"data:{mime};base64,{b64}", "name": name, "type": "image"}
@@ -3165,6 +3266,7 @@ def live_chat_page():
             record_mentions(sb, nm.strip(), "direct_message", result.data[0]["id"], st.session_state.user_id)
             create_notification(sb, tid, st.session_state.user_id, "message", "New direct message", f"@{st.session_state.username} sent you a message.", "direct_message", result.data[0]["id"])
         session_cache_clear(f"dm_unread_{tid}")
+        session_cache_clear(f"user_sent_message_count_{st.session_state.user_id}")
         st.rerun()
 
 
@@ -3526,6 +3628,18 @@ def compute_habit_streak(sb, habit_id) -> int:
     except Exception:
         return 0
 
+def compute_streak_from_log_dates(log_dates) -> int:
+    log_dates = set(log_dates or [])
+    if not log_dates:
+        return 0
+    today = date.today()
+    cursor = today if today.isoformat() in log_dates else today - timedelta(days=1)
+    streak = 0
+    while cursor.isoformat() in log_dates:
+        streak += 1
+        cursor -= timedelta(days=1)
+    return streak
+
 
 def habits_page():
     sb = get_sb()
@@ -3552,23 +3666,37 @@ def habits_page():
                         "name": nm, "emoji": em or "⭐", "frequency": fr,
                         "is_shared": sh2, "created_at": datetime.now(timezone.utc).isoformat(),
                     }).execute()
+                    session_cache_clear(f"community_habits_{st.session_state.user_id}")
+                    session_cache_clear("habit_leaderboard_habits")
+                    session_cache_clear(f"user_activity_counts_{st.session_state.user_id}")
                     st.rerun()
 
         with col2:
             st.markdown("### 📊 Progress")
-            hbs = sb.table("habits").select("*").eq("user_id", st.session_state.user_id).execute()
+            hbs = sb.table("habits").select("id,user_id,username,name,emoji,frequency,is_shared,created_at").eq("user_id", st.session_state.user_id).execute()
             today = date.today().isoformat()
             week_ago = (date.today() - timedelta(days=7)).isoformat()
 
             if not hbs.data:
                 card("<p style='color:var(--t3);'>No habits yet! Create your first one ✨</p>")
             else:
+                habit_ids = [h["id"] for h in hbs.data]
+                log_rows = []
+                if habit_ids:
+                    log_rows = sb.table("habit_logs").select("habit_id,log_date")\
+                        .in_("habit_id", habit_ids)\
+                        .gte("log_date", (date.today() - timedelta(days=400)).isoformat())\
+                        .execute().data or []
+                logs_by_habit = {}
+                for row in log_rows:
+                    logs_by_habit.setdefault(row["habit_id"], set()).add(row["log_date"])
+
                 for h in hbs.data:
-                    done = sb.table("habit_logs").select("id").eq("habit_id", h["id"]).eq("log_date", today).execute()
-                    wk = sb.table("habit_logs").select("id").eq("habit_id", h["id"]).gte("log_date", week_ago).execute()
-                    is_done = bool(done.data)
-                    prog = min(len(wk.data or []) / 7, 1.0)
-                    streak = compute_habit_streak(sb, h["id"])
+                    habit_logs = logs_by_habit.get(h["id"], set())
+                    week_count = sum(1 for log_date in habit_logs if log_date >= week_ago)
+                    is_done = today in habit_logs
+                    prog = min(week_count / 7, 1.0)
+                    streak = compute_streak_from_log_dates(habit_logs)
                     streak_html = f'<span style="color:var(--yellow);font-weight:700;">🔥 {streak}d</span>' if streak > 0 else ''
                     safe_habit = escape_html(h.get("name", "Habit"))
                     safe_emoji = escape_html(h.get("emoji", "⭐"))
@@ -3581,7 +3709,7 @@ def habits_page():
                             <span style="color:{'var(--yellow)' if is_done else 'var(--t3)'};">{'✅ Done' if is_done else '⬜ Pending'}</span>
                           </div>
                           <div style="display:flex;justify-content:space-between;align-items:center;margin-top:.4rem;">
-                            <div style="color:var(--t3);font-size:.8rem;">{len(wk.data or [])}/7 days this week</div>
+                            <div style="color:var(--t3);font-size:.8rem;">{week_count}/7 days this week</div>
                             {streak_html}
                           </div>
                           <div class="hbar"><div class="hfill" style="width:{int(prog * 100)}%;"></div></div>
@@ -3593,19 +3721,28 @@ def habits_page():
                             if st.button("✓", key=f"ck{h['id']}"):
                                 sb.table("habit_logs").insert({"habit_id": h["id"], "user_id": st.session_state.user_id,
                                                                 "log_date": today, "logged_at": datetime.now(timezone.utc).isoformat()}).execute()
+                                session_cache_clear("habit_leaderboard_habits")
                                 st.rerun()
                         if st.button("🗑️", key=f"dh{h['id']}"):
                             sb.table("habits").delete().eq("id", h["id"]).execute()
+                            session_cache_clear(f"community_habits_{st.session_state.user_id}")
+                            session_cache_clear("habit_leaderboard_habits")
+                            session_cache_clear(f"user_activity_counts_{st.session_state.user_id}")
                             st.rerun()
 
     with t2:
         st.markdown("### 🌍 Community Habits")
-        shared = sb.table("habits").select("*").eq("is_shared", True).neq("user_id", st.session_state.user_id) \
-            .order("created_at", desc=True).limit(20).execute()
-        if not shared.data:
+        shared = session_cache_get(
+            f"community_habits_{st.session_state.user_id}",
+            45,
+            lambda: (sb.table("habits").select("id,user_id,username,name,emoji,frequency,created_at")
+                     .eq("is_shared", True).neq("user_id", st.session_state.user_id)
+                     .order("created_at", desc=True).limit(20).execute().data or [])
+        )
+        if not shared:
             card("<p style='color:var(--t3);'>No shared habits yet.</p>")
         else:
-            for h in shared.data:
+            for h in shared:
                 safe_habit = escape_html(h.get("name", "Habit"))
                 safe_emoji = escape_html(h.get("emoji", "⭐"))
                 safe_username = escape_html(h.get("username", "user"))
@@ -3619,14 +3756,28 @@ def habits_page():
 
     with t3:
         st.markdown("### 🏆 Habit Leaderboard")
-        shared = sb.table("habits").select("*").eq("is_shared", True).limit(100).execute()
+        shared = session_cache_get(
+            "habit_leaderboard_habits",
+            45,
+            lambda: (sb.table("habits").select("id,username,name,emoji").eq("is_shared", True).limit(60).execute().data or [])
+        )
+        habit_ids = [h["id"] for h in shared]
+        log_rows = []
+        if habit_ids:
+            log_rows = sb.table("habit_logs").select("habit_id,log_date")\
+                .in_("habit_id", habit_ids)\
+                .gte("log_date", (date.today() - timedelta(days=400)).isoformat())\
+                .execute().data or []
+        logs_by_habit = {}
+        for row in log_rows:
+            logs_by_habit.setdefault(row["habit_id"], set()).add(row["log_date"])
         leaderboard = []
-        for h in (shared.data or []):
+        for h in shared:
             leaderboard.append({
                 "username": h.get("username", "user"),
                 "habit": h.get("name", "Habit"),
                 "emoji": h.get("emoji", "⭐"),
-                "streak": compute_habit_streak(sb, h["id"]),
+                "streak": compute_streak_from_log_dates(logs_by_habit.get(h["id"], set())),
             })
         leaderboard = sorted(leaderboard, key=lambda x: x["streak"], reverse=True)[:15]
         if not leaderboard:
@@ -3710,22 +3861,26 @@ def profile_page():
             st.rerun()
 
     st.markdown("---")
-    pc = sb.table("posts").select("id", count="exact").eq("user_id", st.session_state.user_id).execute()
-    hc = sb.table("habits").select("id", count="exact").eq("user_id", st.session_state.user_id).execute()
-    mc = sb.table("messages").select("id", count="exact").eq("sender_id", st.session_state.user_id).execute()
+    post_count, habit_count, _ = user_activity_counts(sb, st.session_state.user_id)
+    message_count = user_sent_message_count(sb, st.session_state.user_id)
 
     cols = st.columns(3)
-    metrics = [(pc.count or 0, "Posts"), (hc.count or 0, "Habits"), (mc.count or 0, "Messages")]
+    metrics = [(post_count, "Posts"), (habit_count, "Habits"), (message_count, "Messages")]
     for col, (v, l) in zip(cols, metrics):
         col.markdown(f'<div class="metric"><div class="val">{v}</div><div class="lbl">{l}</div></div>', unsafe_allow_html=True)
 
     st.markdown("---")
     st.markdown("### 📝 My Posts")
-    mp = sb.table("posts").select("*").eq("user_id", st.session_state.user_id).order("created_at", desc=True).limit(10).execute()
-    if not mp.data:
+    my_posts = session_cache_get(
+        f"profile_posts_{st.session_state.user_id}",
+        20,
+        lambda: (sb.table("posts").select("id,content,created_at").eq("user_id", st.session_state.user_id)
+                 .order("created_at", desc=True).limit(10).execute().data or [])
+    )
+    if not my_posts:
         st.markdown("<p style='color:var(--t3);'>No posts yet.</p>", unsafe_allow_html=True)
     else:
-        for p in mp.data:
+        for p in my_posts:
             ca, cb = st.columns([5, 1])
             with ca:
                 st.markdown(f"""
@@ -3737,6 +3892,9 @@ def profile_page():
             with cb:
                 if st.button("🗑️", key=f"dp{p['id']}"):
                     sb.table("posts").delete().eq("id", p["id"]).execute()
+                    session_cache_clear(f"profile_posts_{st.session_state.user_id}")
+                    session_cache_clear(f"user_activity_counts_{st.session_state.user_id}")
+                    session_cache_clear("home_feed_")
                     st.rerun()
 
 
