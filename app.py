@@ -1724,6 +1724,37 @@ def escape_html(value) -> str:
 def safe_multiline(value) -> str:
     return escape_html(value).replace("\n", "<br>")
 
+def avatar_html(username, avatar_url=None, size=36, extra_class=""):
+    safe_initials = escape_html((username or "user")[:2].upper())
+    cls = f"av {extra_class}".strip()
+    style = f"width:{size}px;height:{size}px;font-size:{max(size * 0.24, 10):.0f}px;"
+    if avatar_url and str(avatar_url).startswith("data:image"):
+        safe_url = escape_html(avatar_url)
+        inner = f'<img src="{safe_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">'
+    else:
+        inner = safe_initials
+    return f'<div class="{cls}" style="{style}">{inner}</div>'
+
+def avatar_wrap_html(username, avatar_url=None, size=36, online=None, extra_class=""):
+    status = ""
+    if online is not None:
+        status_cls = "on" if online else "off"
+        status = f'<span class="status-badge {status_cls}"></span>'
+    return f'<div class="av-wrap">{avatar_html(username, avatar_url, size, extra_class)}{status}</div>'
+
+def get_profiles_map(sb, user_ids):
+    ids = list({uid for uid in user_ids if uid})
+    if not ids:
+        return {}
+    cache_key = f"profiles_map_{hash(tuple(sorted(ids)))}"
+    def load():
+        try:
+            rows = sb.table("profiles").select("id,username,avatar_url,is_verified,profile_badge").in_("id", ids).execute()
+            return {row["id"]: row for row in (rows.data or [])}
+        except Exception:
+            return {}
+    return session_cache_get(cache_key, 30, load)
+
 def record_mentions(sb, text: str, source_type: str, source_id: str, created_by: str):
     """
     Looks up @username mentions in `text` against real profiles and
@@ -2047,6 +2078,99 @@ def get_recovery_tokens_from_url():
 
     return "found", access_token, refresh_token
 
+def get_saved_auth_tokens_from_browser():
+    """Read persisted Supabase tokens from browser localStorage."""
+    from streamlit_javascript import st_javascript
+
+    raw = st_javascript("""
+    (() => {
+      try {
+        return window.parent.localStorage.getItem("lifehub_auth_tokens") || "";
+      } catch (e) {
+        return "";
+      }
+    })()
+    """)
+    if not isinstance(raw, str):
+        return "pending", None, None
+    if not raw:
+        return "none", None, None
+    try:
+        data = json.loads(raw)
+        access_token = data.get("access_token")
+        refresh_token = data.get("refresh_token")
+        if access_token and refresh_token:
+            return "found", access_token, refresh_token
+    except Exception:
+        pass
+    return "none", None, None
+
+def save_auth_tokens_to_browser():
+    """Persist current Supabase tokens so refresh/reopen keeps the user logged in."""
+    access_token = st.session_state.get("sb_access_token")
+    refresh_token = st.session_state.get("sb_refresh_token")
+    if not access_token or not refresh_token:
+        return
+    auth_key = f"{access_token[:16]}|{refresh_token[:16]}"
+    if st.session_state.get("_browser_auth_saved_key") == auth_key:
+        return
+
+    from streamlit_javascript import st_javascript
+
+    payload = json.dumps({
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+    })
+    st_javascript(f"""
+    (() => {{
+      try {{
+        window.parent.localStorage.setItem("lifehub_auth_tokens", {json.dumps(payload)});
+        return "ok";
+      }} catch (e) {{
+        return "error";
+      }}
+    }})()
+    """)
+    st.session_state["_browser_auth_saved_key"] = auth_key
+
+def clear_auth_tokens_from_browser():
+    st.components.v1.html(
+        """
+        <script>
+        try {
+          window.parent.localStorage.removeItem("lifehub_auth_tokens");
+        } catch (e) {}
+        </script>
+        """,
+        height=0,
+    )
+
+def restore_login_from_saved_tokens() -> str:
+    """Return pending/restored/none/invalid for persisted browser login."""
+    status, access_token, refresh_token = get_saved_auth_tokens_from_browser()
+    if status != "found":
+        return status
+    try:
+        st.session_state.sb_access_token = access_token
+        st.session_state.sb_refresh_token = refresh_token
+        sb = get_sb()
+        user_res = sb.auth.get_user()
+        auth_user = getattr(user_res, "user", None)
+        if not auth_user:
+            return "invalid"
+        prof = sb.table("profiles").select("*").eq("id", auth_user.id).limit(1).execute()
+        if not prof.data:
+            return "invalid"
+        user = prof.data[0]
+        if user.get("is_banned"):
+            return "invalid"
+        set_current_user_session(user)
+        st.session_state.viewing_user = None
+        st.session_state["_auth_transition"] = False
+        return "restored"
+    except Exception:
+        return "invalid"
+
 def get_user_profile(user_id):
     def load():
         sb = get_sb()
@@ -2195,16 +2319,14 @@ def reset_password_page():
 def auth_page():
     sb = get_sb()
 
-    st.markdown("""
-    <div style="position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;">
-      <div style="position:absolute;width:800px;height:800px;border-radius:50%;
-        background:radial-gradient(circle, rgba(88,101,242,0.06), transparent 70%);
-        top:-300px;right:-300px;animation:orbFloat 8s ease-in-out infinite;"></div>
-      <div style="position:absolute;width:600px;height:600px;border-radius:50%;
-        background:radial-gradient(circle, rgba(88,101,242,0.04), transparent 70%);
-        bottom:-200px;left:-200px;animation:orbFloat 10s ease-in-out infinite reverse;"></div>
-    </div>
-    """, unsafe_allow_html=True)
+    if st.session_state.get("_auth_transition"):
+        st.markdown(f"""
+        <div style="text-align:center;padding:4rem 0;">
+          {logo_img(70)}
+          <p style="color:var(--t3);margin-top:1rem;">Opening your workspace...</p>
+        </div>
+        """, unsafe_allow_html=True)
+        st.stop()
 
     # Full width hero with logo
     col1, col2, col3 = st.columns([1, 2, 1])
@@ -2240,19 +2362,27 @@ def auth_page():
             with st.form("lf", clear_on_submit=False):
                 u = st.text_input("Email", placeholder="you@email.com", key="login_user")
                 p = st.text_input("Password", type="password", placeholder="Enter your password", key="login_pass")
-                ok = st.form_submit_button("Sign In", use_container_width=True)
+                ok = st.form_submit_button(
+                    "Sign In",
+                    use_container_width=True,
+                    disabled=st.session_state.get("_auth_busy", False),
+                )
 
             if ok:
+                st.session_state["_auth_busy"] = True
                 if not check_rate_limit("login", limit=8, seconds=120):
+                    st.session_state["_auth_busy"] = False
                     return
                 if not u or not p:
+                    st.session_state["_auth_busy"] = False
                     st.error("Please fill all fields.")
-                    return
+                    st.stop()
                 try:
                     auth_res = sb.auth.sign_in_with_password({"email": u.strip(), "password": p})
                 except Exception:
+                    st.session_state["_auth_busy"] = False
                     st.error("Invalid email or password.")
-                    return
+                    st.stop()
                 if auth_res and auth_res.user:
                     if getattr(auth_res, "session", None):
                         st.session_state.sb_access_token = auth_res.session.access_token
@@ -2263,20 +2393,27 @@ def auth_page():
                             pass
                     prof = sb.table("profiles").select("*").eq("id", auth_res.user.id).execute()
                     if not prof.data:
+                        st.session_state["_auth_busy"] = False
                         st.error("Account exists but has no profile yet. Run the latest schema.sql in Supabase.")
-                        return
+                        st.stop()
                     user = prof.data[0]
                     if user.get("is_banned"):
                         sb.auth.sign_out()
+                        st.session_state["_auth_busy"] = False
                         st.error("Your account has been banned. Contact support if you believe this is an error.")
-                        return
+                        st.stop()
                     set_current_user_session(user)
                     st.session_state.viewing_user = None
                     sb.table("profiles").update({"last_seen": datetime.now(timezone.utc).isoformat()}).eq("id", user["id"]).execute()
                     session_cache_clear("member_list_profiles")
+                    save_auth_tokens_to_browser()
+                    st.session_state["_auth_transition"] = True
+                    st.session_state["_auth_busy"] = False
                     st.rerun()
                 else:
+                    st.session_state["_auth_busy"] = False
                     st.error("Invalid email or password.")
+                    st.stop()
 
         elif auth_mode == "Create Account":
             st.markdown("<div class='auth-copy'>Create a workspace identity. Your account is managed by Supabase Auth.</div>", unsafe_allow_html=True)
@@ -2317,6 +2454,7 @@ def auth_page():
                             sb.auth.set_session(auth_res.session.access_token, auth_res.session.refresh_token)
                         except Exception:
                             pass
+                        save_auth_tokens_to_browser()
                     if auth_res and getattr(auth_res, "user", None):
                         ensure_user_profile_saved(sb, auth_res.user.id, clean_username, ne.strip(), nb)
                     st.success("Account created. Check your email to confirm, then sign in.")
@@ -2371,7 +2509,7 @@ def auth_page():
           </div>
           
           <div style="margin-top:0.5rem;padding-top:1rem;border-top:1px solid rgba(88,101,242,0.06);">
-            <p style="color:var(--t3);font-size:0.7rem;margin:0;">AI assistant powered by Groq</p>
+            <p style="color:var(--t3);font-size:0.7rem;margin:0;">AI assistant powered by Taha</p>
           </div>
         </div>
         """, unsafe_allow_html=True)
@@ -2389,7 +2527,6 @@ def view_user_profile(user_id):
     
     fa = (datetime.now(timezone.utc) - timedelta(minutes=5)).isoformat()
     is_online = (user.get("last_seen") or "") > fa
-    initials = user["username"][:2].upper()
     safe_username = escape_html(user.get("username", "user"))
     safe_bio = safe_multiline(user.get("bio") or "No bio yet.")
     followers, following = follow_counts(sb, user["id"])
@@ -2408,7 +2545,7 @@ def view_user_profile(user_id):
     st.markdown(f"""
     <div class="user-profile-card">
       <div style="display:flex;align-items:center;gap:1.5rem;margin-bottom:1.5rem;">
-        <div class="av av-lg">{initials}</div>
+        {avatar_html(user.get('username', 'user'), user.get('avatar_url'), 80, 'av-lg')}
         <div>
           <h2 style="margin:0;font-family:'Space Grotesk',sans-serif;color:var(--yellow);">@{safe_username}</h2>
           <div style="color:var(--t3);font-size:.78rem;margin-top:.2rem;">
@@ -2539,23 +2676,21 @@ def render_member_list():
     users = session_cache_get(
         "member_list_profiles",
         20,
-        lambda: (sb.table("profiles").select("id,username,last_seen").execute().data or [])
+        lambda: (sb.table("profiles").select("id,username,last_seen,avatar_url").execute().data or [])
     )
 
     online = [u for u in users if (u.get("last_seen") or "") > five_ago]
     offline = [u for u in users if (u.get("last_seen") or "") <= five_ago]
 
     def render_user_button(u, is_online):
-        initials = u["username"][:2].upper()
         is_me = u["id"] == st.session_state.user_id
-        inner = escape_html(initials)
         status_cls = "on" if is_online else "off"
         label = f'@{escape_html(u["username"])}' + (" (you)" if is_me else "")
         c1, c2 = st.columns([1, 4])
         with c1:
             st.markdown(
-                f'<span class="av-wrap"><div class="av-sm">{inner}</div>'
-                f'<span class="status-badge {status_cls}" style="width:10px;height:10px;border-width:2px;"></span></span>',
+                f'<div class="av-wrap">{avatar_html(u.get("username", "user"), u.get("avatar_url"), 30, "av-sm")}'
+                f'<span class="status-badge {status_cls}" style="width:10px;height:10px;border-width:2px;"></span></div>',
                 unsafe_allow_html=True,
             )
         with c2:
@@ -2600,8 +2735,10 @@ def get_home_feed_data(sb, user_id):
                 return [], {}, {}, {}
 
             reaction_rows = sb.table("post_reactions").select("post_id,emoji,user_id").in_("post_id", post_ids).execute().data or []
-            comment_rows = sb.table("post_comments").select("post_id,username,content,created_at")\
+            comment_rows = sb.table("post_comments").select("post_id,user_id,username,content,created_at")\
                 .in_("post_id", post_ids).order("created_at").limit(120).execute().data or []
+            profile_ids = [p.get("user_id") for p in posts] + [c.get("user_id") for c in comment_rows]
+            profiles = get_profiles_map(sb, profile_ids)
 
             reaction_counts = {}
             my_reactions = {}
@@ -2618,9 +2755,9 @@ def get_home_feed_data(sb, user_id):
                 if len(bucket) < 30:
                     bucket.append(c)
 
-            return posts, reaction_counts, my_reactions, comments_by_post
+            return posts, reaction_counts, my_reactions, comments_by_post, profiles
         except Exception:
-            return [], {}, {}, {}
+            return [], {}, {}, {}, {}
     return session_cache_get(f"home_feed_{user_id}", 8, load)
 
 def home_page():
@@ -2690,7 +2827,7 @@ def home_page():
                     session_cache_clear(f"user_activity_counts_{st.session_state.user_id}")
                     st.rerun()
 
-        posts, reaction_counts, my_reactions, comments_by_post = get_home_feed_data(sb, st.session_state.user_id)
+        posts, reaction_counts, my_reactions, comments_by_post, profile_map = get_home_feed_data(sb, st.session_state.user_id)
         if not posts:
             card("""
             <div style="text-align:center;padding:4rem 0;">
@@ -2703,7 +2840,8 @@ def home_page():
 
         for p in posts:
             mine = p["user_id"] == st.session_state.user_id
-            initials = p["username"][:2].upper()
+            profile = profile_map.get(p.get("user_id"), {})
+            post_avatar = avatar_html(p.get("username", "user"), profile.get("avatar_url"), 40, "av-clickable")
             safe_username = escape_html(p.get("username", "user"))
             content_html = linkify_mentions(p["content"])
 
@@ -2712,7 +2850,7 @@ def home_page():
                 st.markdown(f"""
                 <div class="post">
                   <div style="display:flex;align-items:center;gap:.8rem;margin-bottom:.8rem;">
-                    <div class="av av-clickable">{initials}</div>
+                    {post_avatar}
                     <div>
                       <div style="font-weight:700;color:{'var(--yellow)' if mine else 'var(--t)'};font-size:1rem;">
                         @{safe_username} {'<span class="badge">You</span>' if mine else ''}
@@ -2751,7 +2889,15 @@ def home_page():
                     comments = comments_by_post.get(p["id"], [])
                     if comments:
                         for cm in comments:
-                            st.markdown(f"**@{escape_html(cm['username'])}** · {ago(cm['created_at'])}<br>{linkify_mentions(cm['content'])}", unsafe_allow_html=True)
+                            cm_profile = profile_map.get(cm.get("user_id"), {})
+                            cm_avatar = avatar_html(cm.get("username", "user"), cm_profile.get("avatar_url"), 26)
+                            st.markdown(
+                                f'<div style="display:flex;gap:.55rem;align-items:flex-start;margin:.45rem 0;">'
+                                f'{cm_avatar}<div><strong>@{escape_html(cm["username"])}</strong> '
+                                f'<span style="color:var(--t3);font-size:.75rem;">· {ago(cm["created_at"])}</span><br>'
+                                f'{linkify_mentions(cm["content"])}</div></div>',
+                                unsafe_allow_html=True,
+                            )
                     else:
                         st.caption("No comments yet.")
 
@@ -2813,14 +2959,20 @@ def notifications_page():
         card("<p style='color:var(--t3);text-align:center;'>No notifications yet.</p>")
         return
 
+    actor_profiles = get_profiles_map(sb, [n.get("actor_id") for n in rows_data])
     for n in rows_data:
         status = "" if n.get("is_read") else "<span class='badge'>New</span>"
+        actor = actor_profiles.get(n.get("actor_id"), {})
+        actor_avatar = avatar_html(actor.get("username", "user"), actor.get("avatar_url"), 34)
         st.markdown(f"""
         <div class="card" style="padding:1rem 1.2rem;">
           <div style="display:flex;justify-content:space-between;gap:1rem;">
+            <div style="display:flex;gap:.75rem;align-items:flex-start;">
+              {actor_avatar}
             <div>
               <div style="font-weight:800;color:var(--yellow);">{escape_html(n.get('title', 'Notification'))} {status}</div>
               <div style="color:var(--t2);font-size:.9rem;margin-top:.25rem;">{safe_multiline(n.get('body', ''))}</div>
+            </div>
             </div>
             <div style="color:var(--t3);font-size:.75rem;white-space:nowrap;">{ago(n.get('created_at', ''))}</div>
           </div>
@@ -2876,7 +3028,9 @@ def discover_page():
         following = u["id"] in following_set
         safe_username = escape_html(u.get("username", "user"))
         safe_bio = safe_multiline(u.get("bio") or "No bio yet.")
-        c_info, c_follow, c_view = st.columns([4, 1, 1])
+        c_avatar, c_info, c_follow, c_view = st.columns([1, 4, 1, 1])
+        with c_avatar:
+            st.markdown(avatar_html(u.get("username", "user"), u.get("avatar_url"), 42), unsafe_allow_html=True)
         with c_info:
             badge = "✓ Verified" if u.get("is_verified") else (u.get("profile_badge") or "Member")
             st.markdown(f"""
@@ -3093,14 +3247,8 @@ def render_live_messages_fragment(sb, tid, sel, target_avatar):
         st.markdown("<p style='color:var(--t3);text-align:center;padding:2rem;'>Start the conversation 👋</p>", unsafe_allow_html=True)
         return
 
-    my_avatar = st.session_state.user.get("avatar_url")
-    my_initials = st.session_state.username[:2].upper()
-    my_avatar_inner = (f'<img src="{my_avatar}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;">'
-                        if my_avatar and my_avatar.startswith("data:image")
-                        else f'<div class="av" style="width:36px;height:36px;font-size:.85rem;">{my_initials}</div>')
-    their_avatar_inner = (f'<img src="{target_avatar}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;">'
-                           if target_avatar and target_avatar.startswith("data:image")
-                           else f'<div class="av" style="width:36px;height:36px;font-size:.85rem;">{sel[:2].upper()}</div>')
+    my_avatar_inner = avatar_html(st.session_state.username, st.session_state.user.get("avatar_url"), 36)
+    their_avatar_inner = avatar_html(sel, target_avatar, 36)
 
     # Discord pattern: group consecutive messages from the same
     # sender — avatar + name shown once per group, follow-up lines
@@ -3126,7 +3274,7 @@ def render_live_messages_fragment(sb, tid, sel, target_avatar):
         cls = "msg-group mine" if mine else "msg-group"
         st.markdown(f"""
         <div class="{cls}">
-          <span class="av-wrap">{avatar_inner_g}</span>
+          <div class="av-wrap">{avatar_inner_g}</div>
           <div class="msg-group-body">
             <div class="msg-group-head"><span class="msg-group-name">{name}</span><span class="msg-group-time">{first_time}</span></div>
             {lines_html}
@@ -3141,7 +3289,7 @@ def render_live_messages_fragment(sb, tid, sel, target_avatar):
     if typing:
         st.markdown(f"""
         <div class="msg-group">
-          <span class="av-wrap">{their_avatar_inner}</span>
+          <div class="av-wrap">{their_avatar_inner}</div>
           <div class="msg-group-body">
             <div class="msg-line" style="color:var(--t3);font-style:italic;">@{sel} is typing...</div>
           </div>
@@ -3203,18 +3351,13 @@ def live_chat_page():
         st.session_state.chat_target = None
 
     target_avatar = target.get("avatar_url")
-    if target_avatar and target_avatar.startswith("data:image"):
-        avatar_inner = f'<img src="{target_avatar}" style="width:42px;height:42px;border-radius:50%;object-fit:cover;">'
-    else:
-        avatar_inner = f'<div class="av">{sel[:2].upper()}</div>'
-
     status_cls = "on" if is_onl else "off"
     head_col, action_col = st.columns([4, 1])
     with head_col:
         st.markdown(f"""
         <div style="display:flex;align-items:center;gap:.8rem;margin-bottom:1.2rem;
           padding:1rem 1.4rem;background:var(--card);border-radius:var(--r2);border:1px solid rgba(88,101,242,0.12);">
-          <span class="av-wrap">{avatar_inner}<span class="status-badge {status_cls}"></span></span>
+          <div class="av-wrap">{avatar_html(sel, target_avatar, 42)}<span class="status-badge {status_cls}"></span></div>
           <div>
             <div style="font-weight:700;font-size:1rem;">@{escape_html(sel)}</div>
             <div style="font-size:.78rem;color:{'var(--yellow)' if is_onl else 'var(--t3)'};">
@@ -3391,6 +3534,7 @@ def render_channel_messages_fragment(sb, channel_id, channel_name):
     if not msgs.data:
         st.markdown(f"<p style='color:var(--t3);text-align:center;padding:2rem;'>No messages in #{escape_html(channel_name)} yet. Say hello! 👋</p>", unsafe_allow_html=True)
         return
+    sender_profiles = get_profiles_map(sb, [m.get("sender_id") for m in (msgs.data or [])])
 
     groups = []
     for m in msgs.data:
@@ -3401,8 +3545,8 @@ def render_channel_messages_fragment(sb, channel_id, channel_name):
             groups.append({"sender_id": m["sender_id"], "username": m["sender_username"], "mine": mine, "msgs": [m]})
 
     for g in groups:
-        initials = g["username"][:2].upper()
-        avatar_inner = f'<div class="av" style="width:36px;height:36px;font-size:.85rem;">{initials}</div>'
+        profile = sender_profiles.get(g["sender_id"], {})
+        avatar_inner = avatar_html(g["username"], profile.get("avatar_url"), 36)
         name = "You" if g["mine"] else f"@{escape_html(g['username'])}"
         first_time = ago(g["msgs"][0]["created_at"])
         lines_html = "".join(
@@ -3413,7 +3557,7 @@ def render_channel_messages_fragment(sb, channel_id, channel_name):
         cls = "msg-group mine" if g["mine"] else "msg-group"
         st.markdown(f"""
         <div class="{cls}">
-          <span class="av-wrap">{avatar_inner}</span>
+          <div class="av-wrap">{avatar_inner}</div>
           <div class="msg-group-body">
             <div class="msg-group-head"><span class="msg-group-name">{name}</span><span class="msg-group-time">{first_time}</span></div>
             {lines_html}
@@ -3915,13 +4059,6 @@ def sidebar():
         </div>
         """, unsafe_allow_html=True)
 
-        avatar_url = st.session_state.user.get("avatar_url")
-        initials = st.session_state.username[:2].upper()
-        if avatar_url and avatar_url.startswith("data:image"):
-            avatar_inner = f'<img src="{avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">'
-        else:
-            avatar_inner = f'<span style="font-size:.8rem;font-weight:800;color:var(--yellow);line-height:1;">{initials}</span>'
-
         # Unread counts for badge display
         try:
             unread_dms = sum(get_unread_counts(sb, st.session_state.user_id).values())
@@ -3937,20 +4074,30 @@ def sidebar():
             unread_notifications = 0
         is_admin = st.session_state.user.get("is_admin", False)
 
-        st.markdown(f"""
-        <div class="ubadge">
-          <div class="av-wrap">
-            <div class="av">{avatar_inner}</div>
-            <span class="status-badge on"></span>
-          </div>
-          <div style="flex:1;">
-            <div style="font-weight:700;font-size:.9rem;color:var(--yellow);">@{escape_html(st.session_state.username)}</div>
-            <div style="font-size:.7rem;color:var(--yellow);">Active now
-              {f'<span style="background:var(--red);color:white;border-radius:99px;padding:.05rem .35rem;font-size:.65rem;font-weight:700;margin-left:.3rem;">{unread_mentions + unread_notifications}</span>' if (unread_mentions + unread_notifications) else ''}
-            </div>
-          </div>
-        </div>
-        """, unsafe_allow_html=True)
+        with st.container(border=True):
+            c_av, c_meta = st.columns([1, 3])
+            with c_av:
+                st.markdown(
+                    avatar_wrap_html(
+                        st.session_state.username,
+                        st.session_state.user.get("avatar_url"),
+                        46,
+                        online=True,
+                    ),
+                    unsafe_allow_html=True,
+                )
+            with c_meta:
+                total_alerts = unread_mentions + unread_notifications
+                alert_html = (
+                    f'<span style="background:var(--red);color:white;border-radius:99px;'
+                    f'padding:.05rem .35rem;font-size:.65rem;font-weight:700;margin-left:.3rem;">{total_alerts}</span>'
+                    if total_alerts else ""
+                )
+                st.markdown(
+                    f'<div style="font-weight:700;font-size:.9rem;color:var(--yellow);">@{escape_html(st.session_state.username)}</div>'
+                    f'<div style="font-size:.7rem;color:var(--yellow);">Active now {alert_html}</div>',
+                    unsafe_allow_html=True,
+                )
 
         if "page" not in st.session_state:
             st.session_state.page = "home"
@@ -4181,6 +4328,19 @@ def main():
         return
 
     if not st.session_state.get("logged_in"):
+        restore_state = restore_login_from_saved_tokens()
+        if restore_state == "pending":
+            st.markdown(f"""
+            <div style="text-align:center;padding:4rem 0;">
+              {logo_img(70)}
+              <p style="color:var(--t3);margin-top:1rem;">Restoring your session...</p>
+            </div>
+            """, unsafe_allow_html=True)
+            return
+        if restore_state == "restored":
+            st.rerun()
+        if restore_state == "invalid":
+            clear_auth_tokens_from_browser()
         auth_page()
         return
 
@@ -4190,8 +4350,10 @@ def main():
         st.session_state.user = None
         st.session_state.user_id = None
         st.session_state.username = ""
+        clear_auth_tokens_from_browser()
         st.error("Your session expired or your profile could not be loaded. Please sign in again.")
         return
+    save_auth_tokens_to_browser()
 
     try:
         profile_param = st.query_params.get("profile")
