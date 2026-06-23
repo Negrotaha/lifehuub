@@ -3142,7 +3142,7 @@ def get_unread_counts(sb, user_id):
             return counts
         except Exception:
             return {}
-    return session_cache_get(f"dm_unread_{user_id}", 6, load)
+    return session_cache_get(f"dm_unread_{user_id}", 20, load)
 
 
 def set_typing(sb, user_id, target_id):
@@ -3440,18 +3440,22 @@ def calendar_page():
                     "color": co, "created_at": datetime.now(timezone.utc).isoformat(),
                 }).execute()
                 st.success("Added!")
+                session_cache_clear(f"calendar_events_{st.session_state.user_id}")
+                session_cache_clear(f"user_activity_counts_{st.session_state.user_id}")
                 st.rerun()
 
     with col2:
         st.markdown("### 📆 Upcoming")
         fil = st.radio("Show", ["This Week", "This Month", "All"], horizontal=True)
-        now = datetime.now(timezone.utc)
-        q = sb.table("events").select("*").eq("user_id", st.session_state.user_id)
-        if fil == "This Week":
-            q = q.gte("event_date", now.isoformat()).lte("event_date", (now + timedelta(days=7)).isoformat())
-        elif fil == "This Month":
-            q = q.gte("event_date", now.replace(day=1).isoformat())
-        evs = q.order("event_date").execute()
+        def load_events():
+            now = datetime.now(timezone.utc)
+            q = sb.table("events").select("id,title,description,event_date,color").eq("user_id", st.session_state.user_id)
+            if fil == "This Week":
+                q = q.gte("event_date", now.isoformat()).lte("event_date", (now + timedelta(days=7)).isoformat())
+            elif fil == "This Month":
+                q = q.gte("event_date", now.replace(day=1).isoformat())
+            return q.order("event_date").execute().data or []
+        evs_data = session_cache_get(f"calendar_events_{st.session_state.user_id}_{fil}", 30, load_events)
         # Backward-compatible: old events stored before this palette
         # switch used "yellow"/"gold"/"orange" — still mapped here so
         # existing rows in the DB don't render with a missing color.
@@ -3461,10 +3465,10 @@ def calendar_page():
             "yellow": "#5865F2", "gold": "#4752C4", "orange": "#3C45A5",
         }
 
-        if not evs.data:
+        if not evs_data:
             card("<p style='color:var(--t3);text-align:center;'>No events. Add one! 🗓️</p>")
         else:
-            for ev in evs.data:
+            for ev in evs_data:
                 acc = cmap.get(ev.get("color", "blurple"), "#5865F2")
                 dt = ev["event_date"][:16].replace("T", " ")
                 safe_title = escape_html(ev.get("title", "Event"))
@@ -3481,6 +3485,8 @@ def calendar_page():
                 with cd:
                     if st.button("🗑️", key=f"de{ev['id']}"):
                         sb.table("events").delete().eq("id", ev["id"]).execute()
+                        session_cache_clear(f"calendar_events_{st.session_state.user_id}")
+                        session_cache_clear(f"user_activity_counts_{st.session_state.user_id}")
                         st.rerun()
 
 
@@ -3494,11 +3500,11 @@ def get_user_channels(sb, user_id):
             joined = sb.table("channel_members").select("channel_id,last_read_at,role").eq("user_id", user_id).execute()
             joined_ids = [r["channel_id"] for r in (joined.data or [])]
             last_read = {r["channel_id"]: r.get("last_read_at") for r in (joined.data or [])}
-            all_channels = sb.table("channels").select("*").order("created_at").execute()
+            all_channels = sb.table("channels").select("id,name,description,created_by,is_public,invite_code,created_at").order("created_at").execute()
             return all_channels.data or [], set(joined_ids), last_read
         except Exception:
             return [], set(), {}
-    return session_cache_get(f"user_channels_{user_id}", 12, load)
+    return session_cache_get(f"user_channels_{user_id}", 30, load)
 
 
 def get_channel_unread(sb, channel_id, user_id, last_seen_at):
@@ -3511,7 +3517,7 @@ def get_channel_unread(sb, channel_id, user_id, last_seen_at):
             return r.count or 0
         except Exception:
             return 0
-    return session_cache_get(f"channel_unread_{user_id}_{channel_id}_{last_seen_at}", 8, load)
+    return session_cache_get(f"channel_unread_{user_id}_{channel_id}_{last_seen_at}", 20, load)
 
 def get_channel_role(sb, channel_id, user_id):
     def load():
