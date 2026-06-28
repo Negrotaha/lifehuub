@@ -64,481 +64,357 @@ def inject_css():
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700;800&display=swap');
 
 :root {
-  --bg0: #000000;
-  --bg1: #0a0a0c;
-  --bg2: #111114;
-  --bg3: #1a1a1f;
-  --bg4: #222228;
-  --card: #0d0d10;
-  --card2: #16161b;
-  --border: rgba(88, 101, 242, 0.25);
-  --border2: rgba(88, 101, 242, 0.10);
-  --yellow: #5865F2;
-  --yellow2: #4752C4;
-  --yellow3: #6E7CF7;
-  --yellow4: #3C45A5;
-  --glow: rgba(88, 101, 242, 0.35);
-  --glow2: rgba(88, 101, 242, 0.12);
-  --glow3: rgba(88, 101, 242, 0.55);
-  --t: #f2f3f5;
-  --t2: #b5bac1;
-  --t3: #6d6f78;
-  --green: #23A55A;
-  --red: #F23F42;
-  --gold: #5865F2;
-  --blue: #5865F2;
-  --r: 12px;
-  --r2: 18px;
-  --r3: 24px;
+  --primary: #6366f1;
+  --primary-light: #818cf8;
+  --secondary: #06b6d4;
+  --accent: #f472b6;
+  --bg0: #020617;
+  --bg1: #0f172a;
+  --bg2: #1e293b;
+  --card: rgba(15, 23, 42, 0.85);
+  --card-hover: rgba(30, 41, 59, 0.9);
+  --border: rgba(148, 163, 184, 0.25);
+  --border-light: rgba(148, 163, 184, 0.1);
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --success: #10b981;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+  --radius: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
 }
 
-*,*::before,*::after{box-sizing:border-box;}
-html,body,.stApp{background:var(--bg0)!important;color:var(--t)!important;font-family:'Inter',sans-serif!important;}
-
-/* Animated background with particles */
-.stApp::before{
-  content:'';position:fixed;inset:0;
-  background-image: 
-    radial-gradient(circle at 20% 50%, rgba(88,101,242,0.03) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(88,101,242,0.02) 0%, transparent 40%),
-    radial-gradient(circle at 50% 80%, rgba(88,101,242,0.03) 0%, transparent 50%);
-  pointer-events:none;
-  z-index:0;
+*, *::before, *::after {
+  box-sizing: border-box;
 }
 
-/* Grid overlay (static — animating a full-viewport grid every frame is expensive) */
-.stApp::after {
+html, body, .stApp {
+  background: radial-gradient(circle at 12% 8%, rgba(99, 102, 241, 0.3), transparent 32%), 
+              radial-gradient(circle at 88% 24%, rgba(6, 182, 212, 0.25), transparent 30%), 
+              linear-gradient(135deg, #020617 0%, #0f172a 45%, #020617 100%) !important;
+  color: var(--text-primary) !important;
+  font-family: 'Inter', sans-serif !important;
+}
+
+/* Animated background */
+.stApp::before {
   content: '';
   position: fixed;
   inset: 0;
-  background-image: 
-    linear-gradient(rgba(88,101,242,0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(88,101,242,0.02) 1px, transparent 1px);
-  background-size: 60px 60px;
+  background: radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.08), transparent 40%),
+              radial-gradient(circle at 80% 80%, rgba(6, 182, 212, 0.06), transparent 45%);
+  animation: bgShift 12s ease-in-out infinite;
   pointer-events: none;
   z-index: 0;
 }
 
-/* Sidebar - Premium */
-section[data-testid="stSidebar"]{
-  background: linear-gradient(180deg, #050505 0%, #0a0a0a 100%)!important;
-  border-right: 1px solid rgba(88,101,242,0.12)!important;
-  box-shadow: 4px 0 80px rgba(88,101,242,0.05)!important;
-}
-section[data-testid="stSidebar"]>div{padding-top:0!important;}
-
-.main .block-container{padding:1.5rem 2.5rem!important;max-width:1400px!important;}
-
-/* Premium Inputs */
-.stTextInput>div>div>input,
-.stTextArea>div>div>textarea,
-.stNumberInput>div>div>input{
-  background: var(--bg2)!important;
-  color: var(--t)!important;
-  border: 1px solid rgba(88,101,242,0.1)!important;
-  border-radius: var(--r)!important;
-  font-family:'Inter',sans-serif!important;
-  transition: all 0.4s cubic-bezier(.34,1.56,.64,1)!important;
-  padding: 0.75rem 1rem!important;
-}
-.stTextInput>div>div>input:focus,
-.stTextArea>div>div>textarea:focus{
-  border-color: var(--yellow)!important;
-  box-shadow: 0 0 30px var(--glow), 0 0 60px var(--glow2)!important;
-  background: var(--bg3)!important;
-  transform: scale(1.02);
+@keyframes bgShift {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(10px, -10px); }
 }
 
-/* Premium Buttons */
-.stButton>button{
-  background: linear-gradient(135deg, var(--yellow) 0%, var(--yellow3) 100%)!important;
-  color: #000000!important;
-  border: none!important;
-  border-radius: var(--r)!important;
-  font-family:'Inter',sans-serif!important;
-  font-weight: 700!important;
-  letter-spacing: .03em!important;
-  transition: all 0.4s cubic-bezier(.34,1.56,.64,1)!important;
-  box-shadow: 0 0 40px var(--glow), 0 0 80px var(--glow2), 0 1px 0 rgba(255,255,255,.2) inset!important;
-  position:relative!important;
-  overflow:hidden!important;
-  padding: 0.6rem 1.5rem!important;
-}
-.stButton>button:hover{
-  transform: translateY(-3px) scale(1.03)!important;
-  box-shadow: 0 0 60px var(--glow3), 0 0 100px var(--glow2)!important;
-}
-.stButton>button:active{
-  transform: translateY(0) scale(.97)!important;
-}
-.stButton>button::after{
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 60%);
-  opacity: 0;
-  transition: opacity 0.4s;
-}
-.stButton>button:hover::after{
-  opacity: 1;
+/* Sidebar styling */
+section[data-testid="stSidebar"] {
+  background: linear-gradient(180deg, rgba(2, 6, 23, 0.98), rgba(15, 23, 42, 0.95)) !important;
+  border-right: 1px solid rgba(148, 163, 184, 0.15) !important;
+  box-shadow: 8px 0 40px rgba(0, 0, 0, 0.4) !important;
+  backdrop-filter: blur(16px);
 }
 
-/* Premium Tabs */
-.stTabs [data-baseweb="tab-list"]{
-  background: var(--bg2)!important;
-  border-radius: var(--r)!important;
-  padding: 6px!important;
-  gap: 6px!important;
-  border: 1px solid rgba(88,101,242,0.08)!important;
-}
-.stTabs [data-baseweb="tab"]{
-  background: transparent!important;
-  color: var(--t2)!important;
-  border-radius: 10px!important;
-  font-weight: 500!important;
-  transition: all 0.4s!important;
-  padding: 0.6rem 1.2rem!important;
-}
-.stTabs [aria-selected="true"]{
-  background: linear-gradient(135deg, var(--yellow), var(--yellow3))!important;
-  color: #000000!important;
-  box-shadow: 0 0 40px var(--glow)!important;
-  font-weight: 700!important;
-  transform: scale(1.05);
+/* Main container */
+.main .block-container {
+  padding: 1.75rem 2.5rem 2.75rem !important;
+  max-width: 1440px !important;
 }
 
-/* Premium Cards */
-.card{
-  background: linear-gradient(145deg, var(--card) 0%, var(--card2) 100%);
-  border: 1px solid rgba(88,101,242,0.08);
-  border-radius: var(--r3);
-  padding: 1.8rem;
-  margin-bottom: 1rem;
-  box-shadow: 0 8px 32px rgba(0,0,0,.6);
-  transition: all 0.5s cubic-bezier(.34,1.56,.64,1);
-  position: relative;
-  overflow: hidden;
-  backdrop-filter: blur(10px);
-}
-.card::before{
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, var(--yellow), transparent);
-  animation: scanline 4s linear infinite;
-}
-.card::after{
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at 30% 30%, rgba(88,101,242,0.03) 0%, transparent 70%);
-  pointer-events: none;
-}
-@keyframes scanline {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
-.card:hover{
-  transform: translateY(-6px) scale(1.01);
-  border-color: rgba(88,101,242,0.3);
-  box-shadow: 0 20px 60px rgba(0,0,0,.8), 0 0 60px var(--glow2), 0 0 120px var(--glow2);
+/* Input styling */
+.stTextInput > div > div > input,
+.stTextArea > div > div > textarea,
+.stNumberInput > div > div > input,
+.stSelectbox [data-baseweb="select"],
+.stDateInput input,
+.stTimeInput input {
+  background: rgba(15, 23, 42, 0.9) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius) !important;
+  font-family: 'Inter', sans-serif !important;
+  transition: all 0.25s ease !important;
+  padding: 0.85rem 1.1rem !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
 }
 
-/* Premium Metrics */
-.metric{
-  background: linear-gradient(145deg, var(--card) 0%, var(--bg4) 100%);
-  border: 1px solid rgba(88,101,242,0.08);
-  border-radius: var(--r3);
-  padding: 2rem;
+.stTextInput > div > div > input:focus,
+.stTextArea > div > div > textarea:focus,
+.stSelectbox [data-baseweb="select"]:focus-within,
+.stDateInput input:focus,
+.stTimeInput input:focus {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.18), 0 0 30px rgba(99, 102, 241, 0.15) !important;
+  background: rgba(15, 23, 42, 0.95) !important;
+  transform: translateY(-1px);
+}
+
+/* Button styling */
+.stButton > button {
+  background: linear-gradient(135deg, var(--primary), var(--secondary)) !important;
+  color: white !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-radius: var(--radius) !important;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.01em !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-shadow: 0 12px 32px rgba(99, 102, 241, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+  padding: 0.7rem 1.75rem !important;
+  min-height: 44px !important;
+}
+
+.stButton > button:hover {
+  transform: translateY(-2px) scale(1.01) !important;
+  box-shadow: 0 18px 45px rgba(99, 102, 241, 0.35), 0 0 28px rgba(6, 182, 212, 0.2) !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+}
+
+.stButton > button:active {
+  transform: translateY(0) scale(0.99) !important;
+}
+
+/* Sidebar buttons */
+section[data-testid="stSidebar"] .stButton > button {
+  justify-content: flex-start !important;
+  text-align: left !important;
+  background: rgba(15, 23, 42, 0.75) !important;
+  border: 1px solid rgba(148, 163, 184, 0.12) !important;
+  box-shadow: none !important;
+}
+
+section[data-testid="stSidebar"] .stButton > button:hover {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(6, 182, 212, 0.15)) !important;
+  border-color: rgba(129, 140, 248, 0.35) !important;
+  transform: translateX(4px) !important;
+}
+
+/* Tabs */
+.stTabs [data-baseweb="tab-list"] {
+  background: rgba(15, 23, 42, 0.75) !important;
+  border: 1px solid rgba(148, 163, 184, 0.15) !important;
+  border-radius: var(--radius-lg) !important;
+  padding: 0.4rem !important;
+  gap: 0.5rem !important;
+}
+
+.stTabs [data-baseweb="tab"] {
+  background: transparent !important;
+  color: var(--text-muted) !important;
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+  transition: all 0.2s ease !important;
+  padding: 0.65rem 1.2rem !important;
+}
+
+.stTabs [aria-selected="true"] {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(6, 182, 212, 0.2)) !important;
+  color: white !important;
+  box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.25) inset !important;
+}
+
+/* Cards */
+.card, .post, .metric, .ev-card, .user-profile-card,
+.member-panel, div[data-testid="stForm"] {
+  background: linear-gradient(145deg, var(--card), rgba(30, 41, 59, 0.7)) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-xl) !important;
+  box-shadow: 0 18px 55px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+  backdrop-filter: blur(14px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transform-style: preserve-3d;
+}
+
+.card:hover, .post:hover, .metric:hover, .ev-card:hover,
+.user-profile-card:hover, .member-panel:hover, div[data-testid="stForm"]:hover {
+  transform: translateY(-5px) scale(1.01) !important;
+  border-color: rgba(99, 102, 241, 0.4) !important;
+  box-shadow: 0 26px 75px rgba(0, 0, 0, 0.45), 0 0 38px rgba(99, 102, 241, 0.15) !important;
+}
+
+/* Metrics */
+.metric {
+  padding: 1.5rem 1.75rem !important;
   text-align: center;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 8px 32px rgba(0,0,0,.5);
-  transition: all 0.5s cubic-bezier(.34,1.56,.64,1);
 }
-.metric::after{
-  content: '';
-  position: absolute;
-  bottom: -40px;
-  right: -40px;
-  width: 120px;
-  height: 120px;
-  background: radial-gradient(circle, var(--glow2) 0%, transparent 70%);
-  pointer-events: none;
-  animation: glowPulse 4s ease-in-out infinite;
-}
-@keyframes glowPulse {
-  0%, 100% { opacity: 0.3; transform: scale(1) rotate(0deg); }
-  50% { opacity: 1; transform: scale(1.5) rotate(180deg); }
-}
-.metric:hover{
-  transform: translateY(-8px) rotateX(5deg);
-  box-shadow: 0 20px 60px rgba(0,0,0,.7), 0 0 80px var(--glow2);
-  border-color: rgba(88,101,242,0.3);
-}
-.metric .val{
-  font-size: 3rem;
+
+.metric .val {
+  font-size: 2.4rem;
   font-weight: 900;
-  color: var(--yellow);
-  font-family:'Space Grotesk',sans-serif;
-  text-shadow: 0 0 40px var(--glow);
-  animation: numberGlow 2s ease-in-out infinite;
+  color: var(--text-primary);
+  font-family: 'Space Grotesk', sans-serif;
 }
-@keyframes numberGlow {
-  0%, 100% { text-shadow: 0 0 40px var(--glow); }
-  50% { text-shadow: 0 0 80px var(--glow3); }
-}
-.metric .lbl{
-  font-size: .8rem;
-  color: var(--t3);
-  margin-top: .4rem;
+
+.metric .lbl {
+  font-size: 0.8rem;
+  color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: .15em;
+  letter-spacing: 0.12em;
+  margin-top: 0.4rem;
 }
 
-/* Section Header */
-.sh{
-  font-size: 2rem;
-  font-weight: 900;
-  color: var(--t);
-  margin-bottom: 2rem;
-  display: flex;
+/* Section header */
+.sh {
+  width: 100%;
+  min-height: 120px;
+  margin: 0 0 1.6rem !important;
+  padding: 1.5rem 1.8rem;
+  border-radius: var(--radius-xl);
+  border: 1px solid rgba(129, 140, 248, 0.2);
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(8, 47, 73, 0.65)),
+              radial-gradient(circle at 10% 0%, rgba(6, 182, 212, 0.22), transparent 38%),
+              radial-gradient(circle at 90% 40%, rgba(99, 102, 241, 0.25), transparent 35%);
+  box-shadow: 0 26px 70px rgba(2, 6, 23, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 1.2rem;
   align-items: center;
-  gap: .8rem;
-  font-family:'Space Grotesk',sans-serif;
-  text-shadow: 0 0 60px var(--glow2);
-}
-.sh::after{
-  content: '';
-  flex: 1;
-  height: 2px;
-  background: linear-gradient(90deg, var(--yellow), transparent);
-  margin-left: .5rem;
-  box-shadow: 0 0 30px var(--glow);
 }
 
-/* Chat Bubbles Premium */
-.bme{
-  background: linear-gradient(135deg, var(--yellow), var(--yellow3))!important;
-  color: #000000!important;
+.sh::after {
+  display: none;
+}
+
+.sh-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
+  display: grid;
+  place-items: center;
+  color: white;
+  font-size: 1.8rem;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.95), rgba(6, 182, 212, 0.85));
+  box-shadow: 0 18px 38px rgba(6, 182, 212, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.sh-title {
+  margin: 0;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.9rem;
+  font-weight: 900;
+  color: var(--text-primary);
+  letter-spacing: -0.04em;
+}
+
+.sh-sub {
+  margin-top: 0.4rem;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+/* Chat bubbles */
+.bme {
+  background: linear-gradient(135deg, var(--primary), #4f46e5) !important;
+  color: white !important;
   padding: 1rem 1.4rem;
-  border-radius: 20px 20px 4px 20px;
-  margin: .5rem 0;
+  border-radius: 22px 22px 6px 22px;
+  margin: 0.6rem 0;
   max-width: 75%;
   margin-left: auto;
-  box-shadow: 0 8px 30px var(--glow), 0 0 60px var(--glow2);
-  font-size: .95rem;
-  line-height: 1.6;
-  font-weight: 500;
-  animation: slideInRight 0.5s cubic-bezier(.34,1.56,.64,1);
+  box-shadow: 0 12px 36px rgba(99, 102, 241, 0.3) !important;
 }
-.bother{
-  background: var(--card2)!important;
-  color: var(--t)!important;
+
+.bother {
+  background: rgba(15, 23, 42, 0.95) !important;
+  color: var(--text-primary) !important;
   padding: 1rem 1.4rem;
-  border-radius: 20px 20px 20px 4px;
-  margin: .5rem 0;
+  border-radius: 22px 22px 22px 6px;
+  margin: 0.6rem 0;
   max-width: 75%;
-  border: 1px solid rgba(88,101,242,0.1);
-  font-size: .95rem;
-  line-height: 1.6;
-  animation: slideInLeft 0.5s cubic-bezier(.34,1.56,.64,1);
-}
-@keyframes slideInRight {
-  from { opacity: 0; transform: translateX(50px) scale(0.9); }
-  to { opacity: 1; transform: translateX(0) scale(1); }
-}
-@keyframes slideInLeft {
-  from { opacity: 0; transform: translateX(-50px) scale(0.9); }
-  to { opacity: 1; transform: translateX(0) scale(1); }
-}
-.bmeta{
-  font-size: .7rem;
-  color: rgba(0,0,0,.6);
-  margin-top: .3rem;
-}
-.bmeta-other{
-  font-size: .7rem;
-  color: var(--t3);
-  margin-top: .3rem;
+  border: 1px solid rgba(148, 163, 184, 0.18) !important;
 }
 
-/* Premium Posts */
-.post{
-  background: var(--card);
-  border: 1px solid rgba(88,101,242,0.06);
-  border-radius: var(--r3);
-  padding: 1.5rem 1.8rem;
-  margin-bottom: 1rem;
-  transition: all 0.5s cubic-bezier(.34,1.56,.64,1);
-  position: relative;
-  overflow: hidden;
-  cursor: pointer;
-}
-.post:hover{
-  border-color: rgba(88,101,242,0.25);
-  transform: translateX(8px) scale(1.01);
-  box-shadow: 0 0 50px var(--glow2);
-}
-.post::before{
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 4px;
-  background: linear-gradient(180deg, var(--yellow), var(--yellow4));
-  border-radius: 4px 0 0 4px;
-  box-shadow: 0 0 30px var(--glow);
-}
-
-/* Premium Avatar */
-.av{
-  width: 48px;
-  height: 48px;
+/* Avatar */
+.av, .member-row .av-sm {
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.1rem;
   font-weight: 800;
-  color: #000000;
-  background: linear-gradient(135deg, var(--yellow), var(--yellow3));
-  box-shadow: 0 0 30px var(--glow);
+  color: white;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  box-shadow: 0 10px 28px rgba(99, 102, 241, 0.25);
   flex-shrink: 0;
-  transition: all 0.4s;
 }
-.av:hover {
-  transform: scale(1.1) rotate(10deg);
-  box-shadow: 0 0 50px var(--glow3);
-}
-.av-lg{
+
+.av-lg {
   width: 100px;
   height: 100px;
   font-size: 2.5rem;
-  box-shadow: 0 0 60px var(--glow), 0 0 120px var(--glow2);
-}
-.av-clickable {
-  cursor: pointer;
 }
 
-/* Auth Hero Premium */
-.hero{
-  text-align: center;
-  padding: 3rem 0 2rem;
-  animation: fadeDown 1s cubic-bezier(.34,1.56,.64,1);
+/* Branding */
+.brand {
+  padding: 1.5rem 1.2rem 1.2rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
 }
-@keyframes fadeDown{
-  from{ opacity: 0; transform: translateY(-60px) scale(0.9); }
-  to{ opacity: 1; transform: translateY(0) scale(1); }
-}
-.hero-logo-img{
-  animation: float 4s ease-in-out infinite;
-  display: inline-block;
-  filter: drop-shadow(0 0 60px var(--glow));
-}
-.hero-logo-emoji{
-  font-size: 5rem;
-  animation: float 4s ease-in-out infinite;
-  display: inline-block;
-}
-@keyframes float{
-  0%, 100%{ transform: translateY(0) rotate(-3deg); }
-  50%{ transform: translateY(-20px) rotate(3deg); }
-}
-.hero-title{
-  font-size: 4rem;
+
+.brand-name {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.6rem;
   font-weight: 900;
-  font-family:'Space Grotesk',sans-serif;
-  background: linear-gradient(135deg, var(--yellow) 0%, var(--yellow3) 50%, var(--yellow4) 100%);
+  background: linear-gradient(135deg, #f8fafc, #818cf8 45%, #06b6d4);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  margin: .6rem 0;
-  line-height: 1.1;
-  text-shadow: 0 0 80px var(--glow);
-  animation: titleGlow 3s ease-in-out infinite;
-}
-@keyframes titleGlow {
-  0%, 100% { filter: brightness(1); }
-  50% { filter: brightness(1.3); }
-}
-.hero-sub{
-  color: var(--t2);
-  font-size: 1.1rem;
-  margin-top: .3rem;
 }
 
-/* Premium Brand */
-.brand{
-  padding: 1.5rem 1rem 1rem;
-  text-align: center;
-  border-bottom: 1px solid rgba(88,101,242,0.08);
-  margin-bottom: 1rem;
-}
-.brand-name{
-  font-size: 1.8rem;
+/* Hero */
+.hero-title {
+  font-size: 3.6rem;
   font-weight: 900;
-  font-family:'Space Grotesk',sans-serif;
-  background: linear-gradient(135deg, var(--yellow), var(--yellow4));
+  font-family: 'Space Grotesk', sans-serif;
+  background: linear-gradient(135deg, #6366f1, #06b6d4, #f472b6);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  text-shadow: 0 0 60px var(--glow);
+  margin: 0.6rem 0;
+  line-height: 1.05;
 }
 
-/* User Badge Premium */
-.ubadge{
-  display: flex;
-  align-items: center;
-  gap: .8rem;
-  background: var(--bg2);
-  border: 1px solid rgba(88,101,242,0.1);
-  border-radius: var(--r2);
-  padding: 1rem;
-  margin: .5rem 0 1rem;
-  box-shadow: 0 0 30px var(--glow2);
-  transition: all 0.4s;
-}
-.ubadge:hover {
-  transform: scale(1.02);
-  border-color: rgba(88,101,242,0.3);
-  box-shadow: 0 0 50px var(--glow2);
-}
-
-/* Online Indicator — bold, solid, no animation */
-.online{
+/* Badge */
+.badge {
   display: inline-block;
-  width: 9px;
-  height: 9px;
-  background: var(--green);
-  border-radius: 50%;
-  margin-right: 6px;
+  background: rgba(6, 182, 212, 0.18);
+  color: #a5f3fc;
+  border: 1px solid rgba(6, 182, 212, 0.3);
+  padding: 0.18rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
 }
 
-/* Scrollbar Premium */
-::-webkit-scrollbar{width: 6px;height: 6px;}
-::-webkit-scrollbar-track{background: var(--bg0);}
-::-webkit-scrollbar-thumb{background: var(--yellow);border-radius: 99px;box-shadow: 0 0 20px var(--glow);}
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
 
-/* Hide Chrome — but KEEP the sidebar collapse/expand control visible */
-#MainMenu, footer, .stDeployButton { visibility:hidden!important; display:none!important; }
+::-webkit-scrollbar-track {
+  background: rgba(2, 6, 23, 0.6);
+}
 
-/* The header itself must stay (it hosts the sidebar toggle arrow) —
-   just make it transparent so it blends with the page instead of
-   showing the default Streamlit toolbar background. */
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #6366f1, #06b6d4);
+  border-radius: 999px;
+}
+
+/* Header (keep sidebar toggle) */
 header[data-testid="stHeader"] {
   background: transparent !important;
   height: auto !important;
 }
 
-/* Style the sidebar collapse/expand arrow so it's always visible
-   and matches the blurple theme, even when sidebar is closed.
-   Multiple selectors included as fallbacks across Streamlit versions. */
 button[data-testid="stSidebarCollapseButton"],
 button[data-testid="stSidebarCollapsedControl"],
 button[data-testid="baseButton-headerNoPadding"],
@@ -547,124 +423,79 @@ button[data-testid="baseButton-headerNoPadding"],
   visibility: visible !important;
   display: flex !important;
   opacity: 1 !important;
-  background: var(--bg2) !important;
-  border: 1px solid rgba(88,101,242,0.25) !important;
-  border-radius: 10px !important;
-  box-shadow: 0 0 20px var(--glow2) !important;
-  color: var(--yellow) !important;
+  background: rgba(15, 23, 42, 0.8) !important;
+  border: 1px solid rgba(148, 163, 184, 0.25) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 24px rgba(2, 6, 23, 0.4) !important;
+  color: #a5b4fc !important;
   z-index: 999999 !important;
 }
-button[data-testid="stSidebarCollapseButton"]:hover,
-button[data-testid="stSidebarCollapsedControl"]:hover,
-[data-testid="collapsedControl"]:hover {
-  box-shadow: 0 0 30px var(--glow) !important;
-  border-color: var(--yellow) !important;
-}
-button[data-testid="stSidebarCollapseButton"] svg,
-button[data-testid="stSidebarCollapsedControl"] svg,
-[data-testid="collapsedControl"] svg {
-  fill: var(--yellow) !important;
-  stroke: var(--yellow) !important;
+
+/* File uploader */
+.stFileUploader > div > div > div > div {
+  background: rgba(15, 23, 42, 0.8) !important;
+  border: 2px dashed rgba(148, 163, 184, 0.25) !important;
+  border-radius: var(--radius-lg) !important;
+  color: var(--text-secondary) !important;
 }
 
-/* File Uploader Premium */
-.stFileUploader>div>div>div>div {
-  background: var(--bg2)!important;
-  border: 2px dashed rgba(88,101,242,0.2)!important;
-  border-radius: var(--r2)!important;
-  color: var(--t2)!important;
-  transition: all 0.4s!important;
-}
-.stFileUploader>div>div>div>div:hover {
-  border-color: var(--yellow)!important;
-  box-shadow: 0 0 40px var(--glow2)!important;
+.stFileUploader > div > div > div > div:hover {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15) !important;
 }
 
-/* Badge Premium */
-.badge{
-  display: inline-block;
-  background: var(--yellow);
-  color: #000000;
-  padding: .15rem .7rem;
-  border-radius: 99px;
-  font-size: .7rem;
-  font-weight: 700;
-  margin-left: .4rem;
-  box-shadow: 0 0 20px var(--glow);
-  animation: badgePulse 2s ease-in-out infinite;
-}
-@keyframes badgePulse {
-  0%, 100% { box-shadow: 0 0 20px var(--glow); }
-  50% { box-shadow: 0 0 40px var(--glow3); }
-}
-
-/* View User Profile Card */
-.user-profile-card {
-  background: linear-gradient(145deg, var(--card) 0%, var(--card2) 100%);
-  border: 1px solid rgba(88,101,242,0.15);
-  border-radius: var(--r3);
-  padding: 2rem;
-  margin: 1rem 0;
-  box-shadow: 0 8px 40px rgba(0,0,0,.6);
-}
-
-/* Event Card */
-.ev-card{
-  background: var(--card);
-  border-radius: var(--r);
-  padding: 1rem 1.2rem;
-  margin-bottom: .6rem;
-  border-left: 3px solid var(--yellow);
-  transition: all 0.3s ease;
-}
-.ev-card:hover{
-  background: var(--card2);
-  transform: translateX(5px);
-  box-shadow: 0 0 20px var(--glow2);
-}
-
-/* ============================================================
-   3D ROTATING CUBE — Login page signature element
-   Pure CSS transforms, no JS/WebGL dependency.
-   Each face represents a LifeHub module.
-   ============================================================ */
+/* Cube animation */
 .cube-stage {
   width: 100%;
-  height: 280px;
+  height: 260px;
   display: flex;
   align-items: center;
   justify-content: center;
-  perspective: 1000px;
+  perspective: 1200px;
   margin: 1rem 0 1.5rem;
 }
+
 .cube {
   position: relative;
   width: 140px;
   height: 140px;
   transform-style: preserve-3d;
-  animation: cubeSpin 16s linear infinite;
+  animation: cubeSpin 18s linear infinite;
 }
+
 @keyframes cubeSpin {
-  0%   { transform: rotateX(-20deg) rotateY(0deg); }
+  0% { transform: rotateX(-20deg) rotateY(0deg); }
   100% { transform: rotateX(-20deg) rotateY(360deg); }
 }
+
 .cube-face {
   position: absolute;
   width: 140px;
   height: 140px;
-  background: linear-gradient(145deg, rgba(20,20,20,0.95), rgba(10,10,10,0.95));
-  border: 1px solid rgba(88,101,242,0.35);
-  border-radius: 16px;
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.92));
+  border: 1px solid rgba(129, 140, 248, 0.3);
+  border-radius: 18px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  box-shadow: 0 0 40px rgba(88,101,242,0.12), inset 0 0 30px rgba(88,101,242,0.04);
-  backdrop-filter: blur(4px);
+  gap: 8px;
+  box-shadow: 0 0 40px rgba(99, 102, 241, 0.15), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
 }
-.cube-face .ico { font-size: 2.2rem; filter: drop-shadow(0 0 10px rgba(88,101,242,0.5)); }
-.cube-face .lbl { font-size: 0.68rem; color: var(--yellow); text-transform: uppercase; letter-spacing: 0.12em; font-weight: 700; }
+
+.cube-face .ico {
+  font-size: 2.4rem;
+  filter: drop-shadow(0 0 10px rgba(6, 182, 212, 0.5));
+}
+
+.cube-face .lbl {
+  font-size: 0.72rem;
+  color: #a5f3fc;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 700;
+}
+
 .cube-face.front  { transform: translateZ(70px); }
 .cube-face.back   { transform: rotateY(180deg) translateZ(70px); }
 .cube-face.right  { transform: rotateY(90deg) translateZ(70px); }
@@ -672,909 +503,93 @@ button[data-testid="stSidebarCollapsedControl"] svg,
 .cube-face.top    { transform: rotateX(90deg) translateZ(70px); }
 .cube-face.bottom { transform: rotateX(-90deg) translateZ(70px); }
 
-/* Soft floor reflection under the cube for depth */
-.cube-stage::after {
-  content: '';
-  position: absolute;
-  width: 160px;
-  height: 30px;
-  margin-top: 200px;
-  background: radial-gradient(ellipse, rgba(88,101,242,0.18), transparent 70%);
-  filter: blur(4px);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .cube { animation: none; transform: rotateX(-20deg) rotateY(35deg); }
-}
-
-/* Sidebar nav — active/inactive states (previously unstyled — buttons
-   all looked identical regardless of which page was selected) */
-.nav-active .stButton>button{
-  background: linear-gradient(135deg, var(--yellow), var(--yellow3))!important;
-  color: #000000!important;
-  font-weight: 800!important;
-  box-shadow: 0 0 30px var(--glow), 0 1px 0 rgba(255,255,255,.25) inset!important;
-  transform: scale(1.02);
-}
-.nav-inactive .stButton>button{
-  background: var(--bg2)!important;
-  color: var(--t2)!important;
-  box-shadow: none!important;
-  border: 1px solid rgba(88,101,242,0.06)!important;
-  font-weight: 500!important;
-}
-.nav-inactive .stButton>button:hover{
-  background: var(--bg3)!important;
-  color: var(--yellow)!important;
-  border-color: rgba(88,101,242,0.25)!important;
-}
-
-/* Sidebar avatar — rotating gradient ring */
-.av-ring {
-  position: relative;
-  width: 42px; height: 42px;
-  border-radius: 50%;
-  padding: 2px;
-  background: conic-gradient(from 0deg, var(--yellow), transparent 40%, var(--yellow));
-  animation: ringSpin 4s linear infinite;
-  flex-shrink: 0;
-}
-.av-ring-inner {
-  width: 100%; height: 100%;
-  border-radius: 50%;
-  background: var(--bg1);
-  display: flex; align-items: center; justify-content: center;
-  overflow: hidden;
-}
-@keyframes ringSpin { to { transform: rotate(360deg); } }
-
-/* Sidebar live stat row */
-.sb-stat {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: .35rem .1rem;
-  font-size: .78rem;
-  color: var(--t2);
-}
-.sb-stat .n {
-  color: var(--yellow);
-  font-weight: 700;
-  font-family: 'Space Grotesk', sans-serif;
-}
-
-/* ============================================================
-   DISCORD-STYLE PATTERNS
-   (now full Discord-inspired dark + blurple palette)
-   ============================================================ */
-
-/* Status badge: a small dot anchored to the avatar's corner —
-   bold and simple, no extra animation layered on top of it. */
-.av-wrap { position: relative; display: inline-flex; flex-shrink: 0; }
-.status-badge {
-  position: absolute;
-  bottom: -1px; right: -1px;
-  width: 15px; height: 15px;
-  border-radius: 50%;
-  border: 3px solid var(--bg1);
-}
-.status-badge.on  { background: var(--green); }
-.status-badge.off { background: #5c5e66; }
-
-/* Channel-list style sidebar nav — tighter, left-aligned icon+label,
-   small uppercase section eyebrow like Discord's "TEXT CHANNELS". */
-.sb-eyebrow {
-  font-size: .68rem;
-  font-weight: 700;
-  color: var(--t3);
-  text-transform: uppercase;
-  letter-spacing: .1em;
-  padding: .6rem .3rem .3rem;
-}
-
-/* Message grouping — consecutive messages from the same sender
-   collapse: avatar+name shown once, follow-up lines sit flush
-   under it with just a faint hover-revealed timestamp, exactly
-   like Discord's chat log instead of repeating bubbles. */
-.msg-group { display: flex; gap: .7rem; margin: .9rem 0 .2rem; }
-.msg-group .av-wrap { margin-top: 2px; }
-.msg-group-body { flex: 1; min-width: 0; }
-.msg-group-head { display: flex; align-items: baseline; gap: .5rem; margin-bottom: .15rem; }
-.msg-group-name { font-weight: 700; font-size: .92rem; color: var(--yellow); }
-.msg-group-time { font-size: .68rem; color: var(--t3); }
-.msg-line {
-  color: var(--t);
-  font-size: .92rem;
-  line-height: 1.5;
-  padding: .1rem 0;
-  border-radius: 6px;
-  transition: background .15s ease;
-}
-.msg-line:hover { background: rgba(88,101,242,0.03); }
-.msg-line .msg-time-hover {
-  opacity: 0;
-  font-size: .65rem;
-  color: var(--t3);
-  margin-right: .5rem;
-  transition: opacity .15s ease;
-}
-.msg-line:hover .msg-time-hover { opacity: 1; }
-.msg-group.mine .msg-group-name { color: var(--t); }
-.msg-group.mine { flex-direction: row-reverse; text-align: right; }
-.msg-group.mine .msg-group-head { flex-direction: row-reverse; }
-
-/* ── Member List Panel (Discord's right-side member sidebar) ── */
-.member-panel {
-  background: var(--bg1);
-  border: 1px solid rgba(88,101,242,0.08);
-  border-radius: var(--r2);
-  padding: 1rem;
-}
-.member-category {
-  font-size: .68rem;
-  font-weight: 700;
-  color: var(--t3);
-  text-transform: uppercase;
-  letter-spacing: .08em;
-  padding: .5rem .3rem .4rem;
-}
-.member-row {
-  display: flex;
-  align-items: center;
-  gap: .6rem;
-  padding: .4rem .3rem;
-  border-radius: 8px;
-  transition: background .15s ease;
-  cursor: pointer;
-}
-.member-row:hover { background: rgba(88,101,242,0.08); }
-.member-row .name {
-  font-size: .85rem;
-  font-weight: 500;
-  color: var(--t2);
-}
-.member-row.online .name { color: var(--t); }
-.member-row .av-sm {
-  width: 28px; height: 28px;
-  border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: .65rem; font-weight: 800; color: #000;
-  background: linear-gradient(135deg, var(--yellow), var(--yellow3));
-  flex-shrink: 0;
-  overflow: hidden;
-}
-
-/* ============================================================
-   PROFESSIONAL PRODUCT REDESIGN
-   Final override layer: calmer SaaS visual system used across
-   every Streamlit page without changing page logic.
-   ============================================================ */
-:root {
-  --bg0: #070a12;
-  --bg1: #0b1020;
-  --bg2: #111827;
-  --bg3: #172033;
-  --bg4: #1f2937;
-  --card: rgba(15, 23, 42, 0.92);
-  --card2: rgba(17, 24, 39, 0.96);
-  --border: rgba(148, 163, 184, 0.18);
-  --border2: rgba(148, 163, 184, 0.10);
-  --yellow: #7c3aed;
-  --yellow2: #6d28d9;
-  --yellow3: #38bdf8;
-  --yellow4: #4f46e5;
-  --glow: rgba(124, 58, 237, 0.22);
-  --glow2: rgba(56, 189, 248, 0.12);
-  --glow3: rgba(124, 58, 237, 0.30);
-  --t: #f8fafc;
-  --t2: #cbd5e1;
-  --t3: #94a3b8;
-  --green: #10b981;
-  --red: #ef4444;
-  --gold: #f59e0b;
-  --blue: #38bdf8;
-  --r: 10px;
-  --r2: 16px;
-  --r3: 22px;
-}
-
-html, body, .stApp {
-  background:
-    radial-gradient(circle at 10% 0%, rgba(124,58,237,.16), transparent 34%),
-    radial-gradient(circle at 88% 8%, rgba(56,189,248,.12), transparent 32%),
-    linear-gradient(135deg, #070a12 0%, #0b1020 42%, #0f172a 100%) !important;
-  color: var(--t) !important;
-}
-
-.stApp::before {
-  background:
-    linear-gradient(120deg, rgba(255,255,255,.035), transparent 28%, rgba(255,255,255,.018) 62%, transparent),
-    radial-gradient(circle at 50% 100%, rgba(15,23,42,.9), transparent 48%) !important;
-}
-.stApp::after {
-  opacity: .28;
-  background-image:
-    linear-gradient(rgba(148,163,184,.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(148,163,184,.05) 1px, transparent 1px) !important;
-  background-size: 72px 72px !important;
-}
-
-.main .block-container {
-  max-width: 1280px !important;
-  padding: 2rem 2.25rem 3rem !important;
-}
-
-section[data-testid="stSidebar"] {
-  background: rgba(7, 10, 18, .94) !important;
-  border-right: 1px solid rgba(148,163,184,.14) !important;
-  box-shadow: 12px 0 50px rgba(0,0,0,.24) !important;
-  backdrop-filter: blur(18px);
-}
-
-.brand {
-  text-align: left;
-  padding: 1.25rem .8rem 1rem;
-  border-bottom: 1px solid var(--border2);
-}
-.brand > div:first-child {
-  justify-content: flex-start !important;
-}
-.brand-name {
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 1.45rem;
-  letter-spacing: -.03em;
-  background: linear-gradient(135deg, #f8fafc, #a78bfa 56%, #38bdf8);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  text-shadow: none;
-}
-
-.ubadge, .member-panel, .user-profile-card,
-.card, .post, .metric, .ev-card {
-  background: linear-gradient(180deg, rgba(15,23,42,.94), rgba(17,24,39,.92)) !important;
-  border: 1px solid var(--border) !important;
-  box-shadow: 0 18px 45px rgba(0,0,0,.24) !important;
-  backdrop-filter: blur(14px);
-}
-
-.card, .post, .metric, .ev-card, .user-profile-card {
-  border-radius: var(--r3) !important;
-}
-.card::before, .card::after, .metric::after {
-  display: none !important;
-}
-.card:hover, .post:hover, .metric:hover, .ev-card:hover, .ubadge:hover {
-  transform: translateY(-2px) !important;
-  border-color: rgba(124,58,237,.34) !important;
-  box-shadow: 0 22px 55px rgba(0,0,0,.30), 0 0 0 1px rgba(124,58,237,.10) inset !important;
-}
-
-.sh {
-  font-size: 1.8rem;
-  font-weight: 800;
-  letter-spacing: -.035em;
-  margin-bottom: 1.4rem;
-  text-shadow: none;
-}
-.sh::after {
-  height: 1px;
-  background: linear-gradient(90deg, rgba(124,58,237,.65), rgba(56,189,248,.18), transparent);
-  box-shadow: none;
-}
-
-.stButton>button {
-  background: linear-gradient(135deg, #7c3aed, #4f46e5) !important;
-  color: #ffffff !important;
-  border: 1px solid rgba(255,255,255,.10) !important;
-  border-radius: 12px !important;
-  box-shadow: 0 10px 28px rgba(79,70,229,.22) !important;
-  font-weight: 700 !important;
-  letter-spacing: -.01em !important;
-  transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease, background .16s ease !important;
-}
-.stButton>button::after {
-  display: none !important;
-}
-.stButton>button:hover {
-  transform: translateY(-1px) !important;
-  border-color: rgba(255,255,255,.22) !important;
-  box-shadow: 0 14px 34px rgba(79,70,229,.28) !important;
-}
-.stButton>button:active {
-  transform: translateY(0) !important;
-}
-
-.nav-active .stButton>button {
-  background: linear-gradient(135deg, rgba(124,58,237,.98), rgba(56,189,248,.78)) !important;
-  color: #fff !important;
-  box-shadow: 0 12px 30px rgba(56,189,248,.14), 0 0 0 1px rgba(255,255,255,.08) inset !important;
-  transform: none !important;
-}
-.nav-inactive .stButton>button {
-  background: rgba(15,23,42,.72) !important;
-  color: var(--t2) !important;
-  border: 1px solid rgba(148,163,184,.12) !important;
-  box-shadow: none !important;
-}
-.nav-inactive .stButton>button:hover {
-  background: rgba(30,41,59,.9) !important;
-  color: #fff !important;
-  border-color: rgba(124,58,237,.32) !important;
-}
-
-.stTextInput>div>div>input,
-.stTextArea>div>div>textarea,
-.stNumberInput>div>div>input,
-.stSelectbox [data-baseweb="select"],
-.stDateInput input,
-.stTimeInput input {
-  background: rgba(15,23,42,.88) !important;
-  color: var(--t) !important;
-  border: 1px solid rgba(148,163,184,.18) !important;
-  border-radius: 12px !important;
-  box-shadow: 0 1px 0 rgba(255,255,255,.04) inset !important;
-  transition: border-color .16s ease, box-shadow .16s ease, background .16s ease !important;
-}
-.stTextInput>div>div>input:focus,
-.stTextArea>div>div>textarea:focus,
-.stNumberInput>div>div>input:focus,
-.stDateInput input:focus,
-.stTimeInput input:focus {
-  background: rgba(15,23,42,.98) !important;
-  border-color: rgba(124,58,237,.75) !important;
-  box-shadow: 0 0 0 3px rgba(124,58,237,.18) !important;
-  transform: none !important;
-}
-
-.stTabs [data-baseweb="tab-list"] {
-  background: rgba(15,23,42,.72) !important;
-  border: 1px solid rgba(148,163,184,.14) !important;
-  border-radius: 14px !important;
-  padding: 5px !important;
-}
-.stTabs [data-baseweb="tab"] {
-  border-radius: 10px !important;
-  color: var(--t3) !important;
-  font-weight: 700 !important;
-}
-.stTabs [aria-selected="true"] {
-  background: rgba(124,58,237,.18) !important;
-  color: #fff !important;
-  box-shadow: 0 0 0 1px rgba(124,58,237,.28) inset !important;
-  transform: none !important;
-}
-
-.post {
-  cursor: default;
-}
-.post::before {
-  width: 3px;
-  background: linear-gradient(180deg, #7c3aed, #38bdf8);
-  box-shadow: none;
-}
-
-.metric {
-  padding: 1.4rem !important;
-}
-.metric .val {
-  font-size: 2.25rem;
-  color: #ffffff;
-  text-shadow: none;
-  animation: none;
-}
-.metric .lbl {
-  color: var(--t3);
-  letter-spacing: .10em;
-}
-
-.av, .member-row .av-sm {
-  color: #fff !important;
-  background: linear-gradient(135deg, #7c3aed, #38bdf8) !important;
-  box-shadow: 0 10px 24px rgba(79,70,229,.20) !important;
-}
-.av:hover {
-  transform: none !important;
-}
-
-.bme {
-  background: linear-gradient(135deg, #7c3aed, #4f46e5) !important;
-  color: #fff !important;
-  box-shadow: 0 12px 30px rgba(79,70,229,.22) !important;
-  animation: none !important;
-}
-.bother {
-  background: rgba(15,23,42,.92) !important;
-  border: 1px solid rgba(148,163,184,.14) !important;
-  animation: none !important;
-}
-.bmeta {
-  color: rgba(255,255,255,.72);
-}
-
-.msg-group {
-  margin: .8rem 0;
-}
-.msg-line {
-  color: var(--t2);
-  padding: .22rem .35rem;
-}
-.msg-line:hover {
-  background: rgba(124,58,237,.08);
-}
-.msg-group-name {
-  color: #a78bfa;
-}
-.msg-group.mine .msg-group-name {
-  color: #38bdf8;
-}
-
-.badge {
-  background: rgba(56,189,248,.14);
-  color: #bae6fd;
-  border: 1px solid rgba(56,189,248,.22);
-  box-shadow: none;
-  animation: none;
-}
-
-.sb-eyebrow, .member-category {
-  color: var(--t3);
-  font-size: .66rem;
-  letter-spacing: .12em;
-}
-.sb-stat {
-  padding: .48rem .1rem;
-  border-bottom: 1px solid rgba(148,163,184,.07);
-}
-.sb-stat .n {
-  color: #bae6fd;
-}
-
-.stFileUploader>div>div>div>div {
-  background: rgba(15,23,42,.72) !important;
-  border: 1.5px dashed rgba(148,163,184,.28) !important;
-}
-.stFileUploader>div>div>div>div:hover {
-  border-color: rgba(56,189,248,.55) !important;
-  box-shadow: 0 0 0 3px rgba(56,189,248,.10) !important;
-}
-
-.cube-stage {
-  height: 240px;
-}
-.cube, .hero-logo-img, .hero-logo-emoji {
-  animation-duration: 28s !important;
-}
-.cube-face {
-  background: linear-gradient(145deg, rgba(15,23,42,.96), rgba(30,41,59,.94));
-  border-color: rgba(148,163,184,.22);
-  box-shadow: 0 18px 40px rgba(0,0,0,.30), inset 0 0 0 1px rgba(255,255,255,.04);
-}
-.cube-face .lbl {
-  color: #bae6fd;
-}
-
-hr {
-  border-color: rgba(148,163,184,.10) !important;
-}
-
-div[data-testid="stExpander"] {
-  background: rgba(15,23,42,.64) !important;
-  border: 1px solid rgba(148,163,184,.14) !important;
-  border-radius: var(--r2) !important;
-  overflow: hidden;
-}
-
-/* ============================================================
-   ENTERPRISE BLUE 3D THEME
-   Lightweight motion layer. No constant card/avatar animations.
-   ============================================================ */
-@keyframes appAurora {
-  0% { background-position: 0% 0%, 100% 0%, 0% 50%; }
-  50% { background-position: 100% 50%, 0% 100%, 100% 50%; }
-  100% { background-position: 0% 0%, 100% 0%, 0% 50%; }
-}
-@keyframes floatOrb {
-  0%, 100% { transform: translate3d(0,0,0) scale(1); opacity: .72; }
-  50% { transform: translate3d(28px,-22px,0) scale(1.08); opacity: 1; }
-}
-@keyframes fadeUpSoft {
-  from { opacity: 0; transform: translateY(18px); filter: blur(4px); }
-  to { opacity: 1; transform: translateY(0); filter: blur(0); }
-}
-@keyframes pulseBlue {
-  0%, 100% { box-shadow: 0 0 0 1px rgba(59,130,246,.18), 0 18px 50px rgba(2,6,23,.32); }
-  50% { box-shadow: 0 0 0 1px rgba(56,189,248,.38), 0 22px 70px rgba(37,99,235,.28); }
-}
-@keyframes borderFlow {
-  0% { background-position: 0% 50%; }
-  100% { background-position: 200% 50%; }
-}
-@keyframes shimmerText {
-  0% { background-position: 0% 50%; }
-  100% { background-position: 200% 50%; }
-}
-@keyframes popIn {
-  from { opacity: 0; transform: scale(.96) translateY(10px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
-}
-
-html, body, .stApp {
-  background:
-    radial-gradient(circle at 15% 12%, rgba(37,99,235,.28), transparent 30%),
-    radial-gradient(circle at 86% 18%, rgba(14,165,233,.24), transparent 28%),
-    radial-gradient(circle at 50% 90%, rgba(30,64,175,.22), transparent 32%),
-    linear-gradient(135deg, #020617, #07111f 42%, #0b1730 100%) !important;
-  background-size: 100% 100% !important;
-  animation: none !important;
-}
-.stApp::before {
-  background:
-    radial-gradient(circle at 20% 25%, rgba(56,189,248,.12), transparent 24%),
-    radial-gradient(circle at 80% 15%, rgba(59,130,246,.16), transparent 26%),
-    linear-gradient(120deg, rgba(255,255,255,.05), transparent 32%, rgba(56,189,248,.04) 64%, transparent) !important;
-  animation: none !important;
-}
-.stApp::after {
-  opacity: .42;
-  background-image:
-    linear-gradient(rgba(96,165,250,.07) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(96,165,250,.07) 1px, transparent 1px) !important;
-}
-
-.main .block-container > div {
-  animation: fadeUpSoft .55s ease both;
-}
-
-.brand-name, .hero-title {
-  background: linear-gradient(90deg, #60a5fa, #38bdf8, #818cf8, #60a5fa) !important;
-  background-size: 200% auto !important;
-  -webkit-background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
-  animation: none !important;
-}
-
-.card, .post, .metric, .ev-card, .user-profile-card,
-.member-panel, div[data-testid="stForm"] {
-  position: relative;
-  overflow: hidden;
-}
-.card::before, .post::after, .metric::before,
-.user-profile-card::before, div[data-testid="stForm"]::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  padding: 1px;
-  border-radius: inherit;
-  background: linear-gradient(110deg, rgba(37,99,235,.0), rgba(56,189,248,.56), rgba(129,140,248,.38), rgba(37,99,235,.0));
-  background-size: 200% 100%;
-  animation: none;
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
-}
-
-div[data-testid="stForm"] {
-  background: linear-gradient(180deg, rgba(8,18,38,.92), rgba(15,23,42,.86)) !important;
-  border: 1px solid rgba(96,165,250,.20) !important;
-  border-radius: 20px !important;
-  padding: 1.15rem !important;
-  box-shadow: 0 18px 60px rgba(2,6,23,.42) !important;
-}
-
-.stTabs [data-baseweb="tab-list"] {
-  display: grid !important;
-  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-  width: 100% !important;
-  gap: .45rem !important;
-  background: rgba(2,6,23,.44) !important;
-  border-color: rgba(96,165,250,.18) !important;
-  margin-bottom: 1rem !important;
-}
-.stTabs [data-baseweb="tab"] {
-  min-width: 0 !important;
-  justify-content: center !important;
-  white-space: normal !important;
-  min-height: 44px !important;
-  font-size: .78rem !important;
-}
-.stTabs [aria-selected="true"] {
-  background: linear-gradient(135deg, rgba(37,99,235,.86), rgba(14,165,233,.70)) !important;
-  color: #fff !important;
-  animation: none !important;
-}
-
-.stTextInput>div>div>input,
-.stTextArea>div>div>textarea,
-.stNumberInput>div>div>input {
-  min-height: 46px !important;
-  background: rgba(2,6,23,.55) !important;
-  border-color: rgba(96,165,250,.20) !important;
-}
-.stTextInput>div>div>input:hover,
-.stTextArea>div>div>textarea:hover {
-  border-color: rgba(56,189,248,.55) !important;
-}
-.stTextInput label, .stTextArea label, .stSelectbox label,
-.stDateInput label, .stTimeInput label, .stFileUploader label {
-  color: #dbeafe !important;
-  font-weight: 700 !important;
-}
-
-.stButton>button {
-  background: linear-gradient(135deg, #2563eb, #0284c7, #4f46e5) !important;
-  background-size: 180% auto !important;
-  animation: none !important;
-}
-.stButton>button:hover {
-  transform: translateY(-2px) scale(1.015) !important;
-  box-shadow: 0 16px 42px rgba(37,99,235,.38), 0 0 22px rgba(56,189,248,.22) !important;
-}
-
-.post:hover, .card:hover, .metric:hover, .ev-card:hover,
-.member-panel:hover, .user-profile-card:hover {
-  transform: translateY(-5px) scale(1.01) !important;
-  border-color: rgba(56,189,248,.45) !important;
-  box-shadow: 0 26px 75px rgba(2,6,23,.52), 0 0 34px rgba(37,99,235,.16) !important;
-}
-
-.bme, .bother, .msg-group {
-  animation: fadeUpSoft .22s ease both !important;
-}
-.msg-line {
-  transition: background .18s ease, transform .18s ease, color .18s ease !important;
-}
-.msg-line:hover {
-  transform: translateX(3px);
-  color: #eff6ff !important;
-}
-.msg-group.mine .msg-line:hover {
-  transform: translateX(-3px);
-}
-
-.av, .member-row .av-sm {
-  animation: none !important;
-}
-.status-badge.on {
-  box-shadow: 0 0 0 4px rgba(16,185,129,.12), 0 0 18px rgba(16,185,129,.52);
-}
-
-.auth-copy {
-  color: #bfdbfe;
-  font-size: .92rem;
-  line-height: 1.6;
-  margin: .35rem 0 1rem;
-  padding: .75rem .9rem;
-  border-radius: 14px;
-  background: rgba(37,99,235,.10);
-  border: 1px solid rgba(96,165,250,.16);
-}
-
-.card, .post, .metric, .ev-card, .member-panel,
-.user-profile-card, div[data-testid="stForm"], .ubadge {
-  transform: translateZ(0);
-  will-change: transform;
-}
-
-/* ============================================================
-   FULL SITE ENTERPRISE REBUILD LAYER
-   Applies to every page: dashboard header, sidebar, cards, chat,
-   admin rows, channels, auth and forms.
-   ============================================================ */
-.main .block-container {
-  padding-top: 1.25rem !important;
-}
-
-.sh {
-  width: 100%;
-  min-height: 112px;
-  margin: 0 0 1.4rem !important;
-  padding: 1.35rem 1.55rem;
-  border-radius: 28px;
-  border: 1px solid rgba(96,165,250,.22);
-  background:
-    linear-gradient(135deg, rgba(15,23,42,.92), rgba(8,47,73,.58)),
-    radial-gradient(circle at 10% 0%, rgba(56,189,248,.18), transparent 34%),
-    radial-gradient(circle at 90% 35%, rgba(37,99,235,.20), transparent 32%);
-  box-shadow: 0 24px 70px rgba(2,6,23,.34), inset 0 1px 0 rgba(255,255,255,.06);
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 1rem;
-  align-items: center;
-  transform-style: preserve-3d;
-}
-.sh::after {
-  display: none !important;
-}
-.sh-icon {
-  width: 58px;
-  height: 58px;
-  border-radius: 20px;
-  display: grid;
-  place-items: center;
-  color: #eff6ff;
-  background: linear-gradient(135deg, rgba(37,99,235,.95), rgba(14,165,233,.82));
-  box-shadow: 0 18px 36px rgba(14,165,233,.22), inset 0 1px 0 rgba(255,255,255,.22);
-  transform: translateZ(26px);
-}
-.sh-title {
-  margin: 0;
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: clamp(1.55rem, 2.4vw, 2.35rem);
-  font-weight: 900;
-  letter-spacing: -.055em;
-  color: #f8fafc;
-}
-.sh-sub {
-  margin-top: .35rem;
-  color: #bfdbfe;
-  font-size: .92rem;
-  line-height: 1.45;
-  max-width: 780px;
-}
-
-.card, .post, .metric, .ev-card, .user-profile-card,
-.member-panel, div[data-testid="stForm"], div[data-testid="stExpander"] {
-  background:
-    linear-gradient(145deg, rgba(15,23,42,.92), rgba(2,6,23,.72)) !important;
-  border: 1px solid rgba(96,165,250,.18) !important;
-  box-shadow: 0 18px 54px rgba(2,6,23,.28), inset 0 1px 0 rgba(255,255,255,.045) !important;
-}
-
-.card, .post, .metric, .ev-card, .user-profile-card {
-  transform-style: preserve-3d;
-}
-.card:hover, .post:hover, .metric:hover, .ev-card:hover, .user-profile-card:hover {
-  transform: perspective(1000px) rotateX(1.2deg) translateY(-4px) !important;
-}
-
-.stButton>button {
-  min-height: 42px !important;
-  border-radius: 14px !important;
-  background: linear-gradient(135deg, #2563eb, #0891b2) !important;
-  box-shadow: 0 12px 28px rgba(37,99,235,.22), inset 0 1px 0 rgba(255,255,255,.16) !important;
-}
-.stButton>button p {
-  font-weight: 800 !important;
-}
-
-section[data-testid="stSidebar"] .stButton>button {
-  justify-content: flex-start !important;
-  text-align: left !important;
-  min-height: 44px !important;
-  background: rgba(15,23,42,.72) !important;
-  border-color: rgba(96,165,250,.14) !important;
-  box-shadow: none !important;
-}
-section[data-testid="stSidebar"] .stButton>button:hover {
-  background: linear-gradient(135deg, rgba(37,99,235,.65), rgba(8,145,178,.45)) !important;
-  border-color: rgba(125,211,252,.35) !important;
-  transform: translateX(3px) !important;
-}
-
-.stTabs [data-baseweb="tab-list"] {
-  border-radius: 18px !important;
-  padding: .45rem !important;
-}
-.stTabs [data-baseweb="tab"] {
-  min-height: 48px !important;
-}
-
-.msg-group {
-  padding: .65rem .75rem;
-  border-radius: 18px;
-}
-.msg-group:hover {
-  background: rgba(96,165,250,.055);
-}
-
-.member-category, .sb-eyebrow {
-  color: #93c5fd !important;
-}
-
-.brand {
-  border-bottom: 1px solid rgba(96,165,250,.14);
-}
-.brand img {
-  box-shadow: 0 12px 30px rgba(14,165,233,.18);
-}
-
-.auth-copy {
-  background: rgba(8,47,73,.42);
-  border-color: rgba(96,165,250,.20);
-}
-
+/* Radio group */
 div[role="radiogroup"] {
-  background: rgba(2,6,23,.44);
-  border: 1px solid rgba(96,165,250,.16);
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(148, 163, 184, 0.18);
   border-radius: 18px;
-  padding: .45rem;
+  padding: 0.5rem;
   margin-bottom: 1rem;
 }
+
 div[role="radiogroup"] label {
   border-radius: 12px;
-  padding: .45rem .75rem;
-  transition: background .16s ease, transform .16s ease;
+  padding: 0.55rem 0.9rem;
+  transition: all 0.2s ease;
 }
+
 div[role="radiogroup"] label:hover {
-  background: rgba(37,99,235,.18);
+  background: rgba(99, 102, 241, 0.18);
   transform: translateY(-1px);
 }
 
-.auth-hero {
-  position: relative;
-  padding: 2rem 1rem 1.6rem !important;
+/* Auth copy */
+.auth-copy {
+  color: #bfdbfe;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin: 0.4rem 0 1.1rem;
+  padding: 0.8rem 1rem;
+  border-radius: 14px;
+  background: rgba(37, 99, 235, 0.12);
+  border: 1px solid rgba(96, 165, 250, 0.2);
 }
-.auth-hero::before {
-  content: "";
-  position: absolute;
-  left: 50%;
+
+/* User badge */
+.ubadge {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: var(--radius-lg);
+  padding: 1.1rem;
+  margin: 0.6rem 0 1.1rem;
+}
+
+/* Expander */
+div[data-testid="stExpander"] {
+  background: rgba(15, 23, 42, 0.7) !important;
+  border: 1px solid rgba(148, 163, 184, 0.18) !important;
+  border-radius: var(--radius-lg) !important;
+}
+
+/* Post border */
+.post {
+  cursor: default;
+}
+
+.post::before {
+  width: 4px;
+  background: linear-gradient(180deg, var(--primary), var(--secondary));
+  border-radius: 4px 0 0 4px;
+  left: 0;
   top: 0;
-  width: min(560px, 90vw);
-  height: 180px;
-  transform: translateX(-50%);
-  background: radial-gradient(circle, rgba(56,189,248,.16), transparent 62%);
-  pointer-events: none;
-  z-index: -1;
-}
-.auth-product-card {
-  margin-top: -1rem;
-}
-.auth-product-card > div[style*="grid-template-columns"] > div {
-  background: rgba(2,6,23,.48) !important;
-  border: 1px solid rgba(96,165,250,.16) !important;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+  bottom: 0;
+  content: '';
+  position: absolute;
 }
 
-.stAlert {
-  border-radius: 16px !important;
+/* Hide Streamlit default elements */
+#MainMenu, footer, .stDeployButton {
+  visibility: hidden !important;
+  display: none !important;
 }
 
-[data-testid="stVerticalBlock"] > [style*="flex-direction: column"] {
-  gap: .75rem;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation: none !important;
-    transition: none !important;
-  }
-}
-
-/* Performance mode: keep the premium look, but remove costly page-wide
-   animations/transforms that make Streamlit reruns and scrolling feel laggy. */
-.stApp::before,
-.stApp::after {
-  opacity: .65 !important;
-}
-.main .block-container > div,
-.bme, .bother, .msg-group,
-.auth-hero, .hero-logo-img, .hero-logo-emoji,
-.metric .val, .badge, .cube, .av::before {
-  animation: none !important;
-}
-.card, .post, .metric, .ev-card, .member-panel,
-.user-profile-card, div[data-testid="stForm"], .ubadge,
-.stButton > button, .stTextInput input, .stTextArea textarea {
-  transition: border-color .12s ease, background .12s ease, box-shadow .12s ease !important;
-  will-change: auto !important;
-}
-.card:hover, .post:hover, .metric:hover, .ev-card:hover, .ubadge:hover,
-.stButton > button:hover, .stTextInput input:focus, .stTextArea textarea:focus {
-  transform: none !important;
-}
-.cube {
-  transform: rotateX(-20deg) rotateY(35deg) !important;
-}
-
+/* Responsive */
 @media (max-width: 900px) {
   .main .block-container {
-    padding: 1.25rem 1rem 2rem !important;
+    padding: 1.3rem 1rem 2.2rem !important;
   }
+  
   .sh {
-    font-size: 1.45rem;
+    padding: 1.25rem 1.2rem;
   }
-  .metric .val {
-    font-size: 1.8rem;
+  
+  .sh-title {
+    font-size: 1.5rem;
   }
+  
   .stTabs [data-baseweb="tab-list"] {
     grid-template-columns: 1fr !important;
   }
@@ -1583,9 +598,542 @@ div[role="radiogroup"] label:hover {
 """, unsafe_allow_html=True)
 
 
+def inject_theme_css():
+    theme = st.session_state.get("theme_mode", "Midnight")
+    if theme == "Ocean":
+        st.markdown("""
+        <style>
+        :root{
+          --primary: #06b6d4;
+          --primary-light: #22d3ee;
+          --bg0: #030712;
+          --bg1: #0f172a;
+          --card: rgba(15, 23, 42, 0.88);
+        }
+        </style>
+        """, unsafe_allow_html=True)
+
+
+def get_recovery_tokens_from_url():
+    from streamlit_javascript import st_javascript
+    raw_hash = st_javascript("window.parent.location.hash")
+    if not isinstance(raw_hash, str):
+        return "pending", None, None
+    if "type=recovery" not in raw_hash:
+        return "none", None, None
+    from urllib.parse import parse_qs
+    params = parse_qs(raw_hash.lstrip("#"))
+    access_token = params.get("access_token", [None])[0]
+    refresh_token = params.get("refresh_token", [None])[0]
+    if not access_token:
+        return "none", None, None
+    return "found", access_token, refresh_token
+
+
+def get_saved_auth_tokens_from_browser():
+    from streamlit_javascript import st_javascript
+    raw = st_javascript("""
+    (() => {
+        try {
+            return window.parent.localStorage.getItem("lifehub_auth_tokens") || "";
+        } catch (e) {
+            return "";
+        }
+    })()
+    """)
+    if not isinstance(raw, str):
+        return "pending", None, None
+    if not raw:
+        return "none", None, None
+    try:
+        import json
+        data = json.loads(raw)
+        access_token = data.get("access_token")
+        refresh_token = data.get("refresh_token")
+        if access_token and refresh_token:
+            return "found", access_token, refresh_token
+    except Exception:
+        pass
+    return "none", None, None
+
+
+def save_auth_tokens_to_browser():
+    access_token = st.session_state.get("sb_access_token")
+    refresh_token = st.session_state.get("sb_refresh_token")
+    if not access_token or not refresh_token:
+        return
+    auth_key = f"{access_token[:16]}|{refresh_token[:16]}"
+    if st.session_state.get("_browser_auth_saved_key") == auth_key:
+        return
+    import json
+    payload = json.dumps({
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+    })
+    st.components.v1.html(
+        f"""
+        <script>
+        try {{
+            window.parent.localStorage.setItem("lifehub_auth_tokens", {json.dumps(payload)});
+        }} catch (e) {{}}
+        </script>
+        """,
+        height=0,
+    )
+    st.session_state["_browser_auth_saved_key"] = auth_key
+
+
+def clear_auth_tokens_from_browser():
+    st.components.v1.html(
+        """
+        <script>
+        try {
+            window.parent.localStorage.removeItem("lifehub_auth_tokens");
+        } catch (e) {}
+        </script>
+        """,
+        height=0,
+    )
+
+
+def restore_login_from_saved_tokens() -> str:
+    status, access_token, refresh_token = get_saved_auth_tokens_from_browser()
+    if status != "found":
+        return status
+    try:
+        st.session_state.sb_access_token = access_token
+        st.session_state.sb_refresh_token = refresh_token
+        sb = get_sb()
+        user_res = sb.auth.get_user()
+        auth_user = getattr(user_res, "user", None)
+        if not auth_user:
+            return "invalid"
+        prof = sb.table("profiles").select("*").eq("id", auth_user.id).limit(1).execute()
+        if not prof.data:
+            return "invalid"
+        user = prof.data[0]
+        if user.get("is_banned"):
+            return "invalid"
+        set_current_user_session(user)
+        st.session_state.viewing_user = None
+        st.session_state["_auth_transition"] = False
+        return "restored"
+    except Exception:
+        return "invalid"
+
+
+def get_user_profile(user_id):
+    def load():
+        sb = get_sb()
+        result = sb.table("profiles").select("*").eq("id", user_id).execute()
+        return result.data[0] if result.data else None
+    return session_cache_get(f"profile_{user_id}", 30, load)
+
+
+def get_user_by_username(username):
+    if not username:
+        return None
+    def load():
+        try:
+            sb = get_sb()
+            result = sb.table("profiles").select("*").eq("username", username).limit(1).execute()
+            return result.data[0] if result.data else None
+        except Exception:
+            return None
+    return session_cache_get(f"profile_username_{username}", 30, load)
+
+
+GROQ_MODEL_CANDIDATES = [
+    "llama-3.3-70b-versatile",
+    "llama-3.1-8b-instant",
+    "openai/gpt-oss-120b",
+]
+
+
+def call_groq(messages, api_key):
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    last_error = None
+    for model in GROQ_MODEL_CANDIDATES:
+        payload = {
+            "model": model,
+            "messages": messages,
+            "temperature": 0.7,
+            "max_tokens": 1024,
+        }
+        try:
+            resp = requests.post(
+                f"{GROQ_BASE_URL}/chat/completions",
+                headers=headers, json=payload, timeout=30,
+            )
+        except requests.RequestException as e:
+            last_error = f"Network error contacting Groq ({model}): {e}"
+            continue
+        if resp.status_code == 200:
+            data = resp.json()
+            try:
+                return data["choices"][0]["message"]["content"]
+            except (KeyError, IndexError):
+                return "Error: Could not parse response content from Groq."
+        if resp.status_code in (404, 400):
+            last_error = f"Groq API Error ({resp.status_code}) for model '{model}': {resp.text}"
+            continue
+        return f"Groq API Error ({resp.status_code}): {resp.text}"
+    return f"Groq API Error: all model candidates failed. Last error: {last_error}"
+
+
+PAGE_SUBTITLES = {
+    "Home Feed": "Publish updates, discover your community, react to posts, and jump into member profiles.",
+    "Discover": "Search members, follow people, open public profiles, and grow your workspace network.",
+    "Notifications": "Review follows, mentions, comments, reactions, messages, and workspace alerts.",
+    "AI Assistant": "Ask questions, draft ideas, and get fast help without leaving your workspace.",
+    "Live Chat": "Private conversations with unread badges, attachments, mentions, search, and typing status.",
+    "Calendar": "Plan upcoming events, meetings, reminders, and personal schedules in one clean view.",
+    "Channels": "Team spaces for group chat, file sharing, mentions, and public community rooms.",
+    "Habit Tracker": "Track streaks, weekly progress, shared habits, and personal routines.",
+    "My Profile": "Control your identity, avatar, bio, posts, and account presence.",
+    "Admin Panel": "Moderate members, posts, channels, bans, and workspace access from one control center.",
+}
+
+
+def sh_header(icon, title):
+    subtitle = PAGE_SUBTITLES.get(title, APP_TAGLINE)
+    st.markdown(
+        f"""
+        <section class="sh">
+          <div class="sh-icon">{icon}</div>
+          <div>
+            <h1 class="sh-title">{escape_html(title)}</h1>
+            <div class="sh-sub">{escape_html(subtitle)}</div>
+          </div>
+        </section>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def card(html):
+    st.markdown(f'<div class="card">{html}</div>', unsafe_allow_html=True)
+
+
+def logo_img(size=80, css_class="hero-logo-img"):
+    if LOGO_SRC:
+        return f'<img src="{LOGO_SRC}" width="{size}" height="{size}" class="{css_class}" style="border-radius:20%;object-fit:contain;">'
+    return f'<span class="hero-logo-emoji">🌙</span>'
+
+
+def logo_small(size=32):
+    if LOGO_SRC:
+        return f'<img src="{LOGO_SRC}" width="{size}" height="{size}" style="border-radius:8px;object-fit:contain;vertical-align:middle;">'
+    return "🌙"
+
+
+def render_cube():
+    faces = [
+        ("front",  "🤖", "AI Chat"),
+        ("back",   "💬", "Live Chat"),
+        ("right",  "📅", "Calendar"),
+        ("left",   "🏠", "Home"),
+        ("top",    "✅", "Habits"),
+        ("bottom", "👤", "Profile"),
+    ]
+    faces_html = "".join(
+        f'<div class="cube-face {cls}"><span class="ico">{ico}</span><span class="lbl">{lbl}</span></div>'
+        for cls, ico, lbl in faces
+    )
+    st.markdown(f"""
+    <div class="cube-stage">
+      <div class="cube">{faces_html}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
 # ============================================================
 # DB + Helpers
 # ============================================================
+def hp(p: str) -> str:
+    return hashlib.sha256(p.encode()).hexdigest()
+
+import re as _re
+
+def extract_mentions(text: str) -> list:
+    return list(set(_re.findall(r'@(\w+)', text)))
+
+def escape_html(value) -> str:
+    return html.escape(str(value or ""), quote=True)
+
+def safe_multiline(value) -> str:
+    return escape_html(value).replace("\n", "<br>")
+
+def avatar_html(username, avatar_url=None, size=36, extra_class=""):
+    safe_initials = escape_html((username or "user")[:2].upper())
+    cls = f"av {extra_class}".strip()
+    style = f"width:{size}px;height:{size}px;font-size:{max(size * 0.24, 10):.0f}px;"
+    if avatar_url and str(avatar_url).startswith("data:image"):
+        safe_url = escape_html(avatar_url)
+        inner = f'<img src="{safe_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">'
+    else:
+        inner = safe_initials
+    return f'<div class="{cls}" style="{style}">{inner}</div>'
+
+def avatar_wrap_html(username, avatar_url=None, size=36, online=None, extra_class=""):
+    status = ""
+    if online is not None:
+        status_cls = "on" if online else "off"
+        status = f'<span class="status-badge {status_cls}"></span>'
+    return f'<div class="av-wrap">{avatar_html(username, avatar_url, size, extra_class)}{status}</div>'
+
+def get_profiles_map(sb, user_ids):
+    ids = list({uid for uid in user_ids if uid})
+    if not ids:
+        return {}
+    cache_key = f"profiles_map_{hash(tuple(sorted(ids)))}"
+    def load():
+        try:
+            rows = sb.table("profiles").select("id,username,avatar_url,is_verified,profile_badge").in_("id", ids).execute()
+            return {row["id"]: row for row in (rows.data or [])}
+        except Exception:
+            return {}
+    return session_cache_get(cache_key, 30, load)
+
+def record_mentions(sb, text: str, source_type: str, source_id: str, created_by: str):
+    usernames = extract_mentions(text)
+    if not usernames:
+        return
+    try:
+        matched = sb.table("profiles").select("id,username").in_("username", usernames).execute()
+        for u in (matched.data or []):
+            if u["id"] == created_by:
+                continue
+            sb.table("mentions").insert({
+                "mentioned_user_id": u["id"],
+                "source_type": source_type,
+                "source_id": source_id,
+                "created_by": created_by,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            }, returning=ReturnMethod.minimal).execute()
+            create_notification(
+                sb,
+                u["id"],
+                created_by,
+                "mention",
+                "You were mentioned",
+                f"Someone mentioned you in a {source_type.replace('_', ' ')}.",
+                source_type,
+                source_id,
+            )
+    except Exception:
+        pass
+
+def linkify_mentions(text: str) -> str:
+    escaped = safe_multiline(text)
+    return _re.sub(r'@(\w+)', r'<span style="color:var(--primary);font-weight:600;">@\1</span>', escaped)
+
+def get_unread_mention_count(sb, user_id, source_type=None) -> int:
+    def load():
+        try:
+            q = sb.table("mentions").select("id", count="exact").eq("mentioned_user_id", user_id).eq("is_read", False)
+            if source_type:
+                q = q.eq("source_type", source_type)
+            r = q.execute()
+            return r.count or 0
+        except Exception:
+            return 0
+    return session_cache_get(f"mention_count_{user_id}_{source_type or 'all'}", 20, load)
+
+def mark_mentions_read(sb, user_id, source_type=None):
+    try:
+        q = sb.table("mentions").update({"is_read": True}).eq("mentioned_user_id", user_id).eq("is_read", False)
+        if source_type:
+            q = q.eq("source_type", source_type)
+        q.execute()
+        session_cache_clear(f"mention_count_{user_id}")
+    except Exception:
+        pass
+
+def check_rate_limit(action: str, limit: int = 6, seconds: int = 60) -> bool:
+    key = f"rate_{action}"
+    now = time.time()
+    hits = [t for t in st.session_state.get(key, []) if now - t < seconds]
+    if len(hits) >= limit:
+        st.warning(f"Slow down a little. Try again in {int(seconds - (now - hits[0]))}s.")
+        st.session_state[key] = hits
+        return False
+    hits.append(now)
+    st.session_state[key] = hits
+    return True
+
+def create_notification(sb, user_id, actor_id, kind, title, body="", source_type=None, source_id=None):
+    if not user_id or user_id == actor_id:
+        return
+    try:
+        sb.table("notifications").insert({
+            "user_id": user_id,
+            "actor_id": actor_id,
+            "kind": kind,
+            "title": title,
+            "body": body,
+            "source_type": source_type,
+            "source_id": source_id,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }, returning=ReturnMethod.minimal).execute()
+        session_cache_clear(f"notification_count_{user_id}")
+        session_cache_clear(f"notifications_page_{user_id}")
+    except Exception:
+        pass
+
+def get_unread_notification_count(sb, user_id) -> int:
+    def load():
+        try:
+            r = sb.table("notifications").select("id", count="exact").eq("user_id", user_id).eq("is_read", False).execute()
+            return r.count or 0
+        except Exception:
+            return 0
+    return session_cache_get(f"notification_count_{user_id}", 20, load)
+
+def follow_counts(sb, user_id):
+    def load():
+        try:
+            followers = sb.table("user_follows").select("id", count="exact").eq("following_id", user_id).execute().count or 0
+            following = sb.table("user_follows").select("id", count="exact").eq("follower_id", user_id).execute().count or 0
+            return followers, following
+        except Exception:
+            return 0, 0
+    return session_cache_get(f"follow_counts_{user_id}", 30, load)
+
+def is_following(sb, follower_id, following_id) -> bool:
+    try:
+        r = sb.table("user_follows").select("id").eq("follower_id", follower_id).eq("following_id", following_id).limit(1).execute()
+        return bool(r.data)
+    except Exception:
+        return False
+
+def user_activity_counts(sb, user_id):
+    def load():
+        try:
+            posts = sb.table("posts").select("id", count="exact").eq("user_id", user_id).execute().count or 0
+            habits = sb.table("habits").select("id", count="exact").eq("user_id", user_id).execute().count or 0
+            events = sb.table("events").select("id", count="exact").eq("user_id", user_id).execute().count or 0
+            return posts, habits, events
+        except Exception:
+            return 0, 0, 0
+    return session_cache_get(f"user_activity_counts_{user_id}", 30, load)
+
+def user_sent_message_count(sb, user_id):
+    def load():
+        try:
+            return sb.table("messages").select("id", count="exact").eq("sender_id", user_id).execute().count or 0
+        except Exception:
+            return 0
+    return session_cache_get(f"user_sent_message_count_{user_id}", 30, load)
+
+def report_target(sb, target_type, target_id, reason):
+    if not reason or not reason.strip():
+        st.error("Please enter a short reason.")
+        return
+    if not check_rate_limit("report", limit=3, seconds=120):
+        return
+    try:
+        sb.table("reports").insert({
+            "reporter_id": st.session_state.user_id,
+            "target_type": target_type,
+            "target_id": target_id,
+            "reason": reason.strip()[:300],
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }).execute()
+        st.success("Report sent to admins.")
+    except Exception as e:
+        st.error(f"Could not send report: {e}")
+
+def render_attachment_preview(url, name, file_type):
+    if not url:
+        return ""
+    return render_attachment_html(url, name, file_type)
+
+def ago(ts: str) -> str:
+    try:
+        dt = datetime.fromisoformat(ts.replace("Z","+00:00")).replace(tzinfo=None)
+        d  = datetime.now(timezone.utc).replace(tzinfo=None) - dt
+        if d.seconds < 60: return "just now"
+        if d.seconds < 3600: return f"{d.seconds//60}m ago"
+        if d.days < 1: return f"{d.seconds//3600}h ago"
+        return f"{d.days}d ago"
+    except: return ""
+
+def set_typing(sb, user_id, target_id):
+    key = f"typing_heartbeat_{target_id}"
+    now = time.time()
+    if now - st.session_state.get(key, 0) < 2:
+        return
+    try:
+        sb.table("typing_status").upsert({
+            "user_id": user_id, "target_id": target_id,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }, on_conflict="user_id,target_id").execute()
+        st.session_state[key] = now
+    except Exception:
+        pass
+
+def is_other_typing(sb, other_id, my_id):
+    try:
+        cutoff = (datetime.now(timezone.utc) - timedelta(seconds=4)).isoformat()
+        r = sb.table("typing_status").select("updated_at").eq("user_id", other_id).eq("target_id", my_id).gte("updated_at", cutoff).execute()
+        return bool(r.data)
+    except Exception:
+        return False
+
+def file_to_data_uri(uploaded_file, max_dim=640) -> dict:
+    try:
+        name = uploaded_file.name
+        ext = name.split(".")[-1].lower()
+        if ext in ("png", "jpg", "jpeg", "gif", "webp"):
+            img = Image.open(uploaded_file)
+            img.thumbnail((max_dim, max_dim))
+            buf = io.BytesIO()
+            fmt = "PNG" if ext in ("png", "gif") else "JPEG"
+            save_kwargs = {"optimize": True}
+            if fmt == "JPEG":
+                save_kwargs["quality"] = 75
+            img.convert("RGB" if fmt == "JPEG" else "RGBA").save(buf, format=fmt, **save_kwargs)
+            b64 = base64.b64encode(buf.getvalue()).decode()
+            mime = "image/png" if fmt == "PNG" else "image/jpeg"
+            return {"url": f"data:{mime};base64,{b64}", "name": name, "type": "image"}
+        else:
+            raw = uploaded_file.read()
+            if len(raw) > 2 * 1024 * 1024:
+                st.error("File too large — 2MB max.")
+                return None
+            b64 = base64.b64encode(raw).decode()
+            return {"url": f"data:application/octet-stream;base64,{b64}", "name": name, "type": "file"}
+    except Exception as e:
+        st.error(f"Could not process file: {e}")
+        return None
+
+def render_attachment_html(file_url, file_name, file_type):
+    if not file_url:
+        return ""
+    safe_name = escape_html(file_name or "attachment")
+    if file_type == "image":
+        return f'<img src="{file_url}" style="max-width:280px;max-height:280px;border-radius:10px;margin-top:.4rem;display:block;">'
+    return (f'<a href="{file_url}" download="{safe_name}" '
+            f'style="display:inline-flex;align-items:center;gap:.4rem;margin-top:.4rem;'
+            f'background:rgba(99,102,241,0.12);padding:.4rem .8rem;border-radius:8px;'
+            f'color:var(--primary);text-decoration:none;font-size:.85rem;">📎 {safe_name}</a>')
+
+def get_unread_counts(sb, user_id):
+    def load():
+        try:
+            rows = sb.table("messages").select("sender_id").eq("receiver_id", user_id).eq("is_read", False).execute()
+            counts = {}
+            for r in (rows.data or []):
+                counts[r["sender_id"]] = counts.get(r["sender_id"], 0) + 1
+            return counts
+        except Exception:
+            return {}
+    return session_cache_get(f"dm_unread_{user_id}", 20, load)
+
 def session_cache_get(key: str, ttl: int, loader):
     """Tiny per-user TTL cache; avoids cross-user RLS leaks from global caching."""
     now = time.time()
@@ -1792,7 +1340,7 @@ def record_mentions(sb, text: str, source_type: str, source_id: str, created_by:
 def linkify_mentions(text: str) -> str:
     """Escapes text, then wraps @username occurrences in a styled span."""
     escaped = safe_multiline(text)
-    return _re.sub(r'@(\w+)', r'<span style="color:var(--yellow);font-weight:600;">@\1</span>', escaped)
+    return _re.sub(r'@(\w+)', r'<span style="color:var(--primary);font-weight:600;">@\1</span>', escaped)
 
 def get_unread_mention_count(sb, user_id, source_type=None) -> int:
     def load():
@@ -1999,8 +1547,8 @@ def inject_theme_css():
         <style>
         :root{
           --bg:#031525; --bg2:#082f49; --card:rgba(8,47,73,.82);
-          --yellow:#38bdf8; --yellow2:#0ea5e9; --yellow3:#0284c7; --yellow4:#7dd3fc;
-          --glow:rgba(14,165,233,.32);
+          --primary:#38bdf8; --primary-light:#0ea5e9; --primary-light:#0284c7; --secondary:#7dd3fc;
+          --primary:rgba(14,165,233,.32);
         }
         html, body, .stApp {
           background:
@@ -2018,8 +1566,8 @@ def inject_theme_css():
         <style>
         :root{
           --bg:#070b18; --bg2:#0f172a; --card:rgba(15,23,42,.78);
-          --yellow:#5865F2; --yellow2:#4752C4; --yellow3:#3C45A5; --yellow4:#7C83FF;
-          --glow:rgba(88,101,242,.30);
+          --primary:#5865F2; --primary-light:#4752C4; --primary-light:#3C45A5; --secondary:#7C83FF;
+          --primary:rgba(88,101,242,.30);
         }
         html, body, .stApp {
           background:
@@ -2264,8 +1812,8 @@ def reset_password_page():
     st.markdown(f"""
     <div style="text-align:center;padding:2rem 0 1rem;">
       {logo_img(80)}
-      <h2 style="font-family:'Space Grotesk',sans-serif;color:var(--yellow);margin:.5rem 0;">Set a new password</h2>
-      <p style="color:var(--t2);">You're verified — choose a new password below.</p>
+      <h2 style="font-family:'Space Grotesk',sans-serif;color:var(--primary);margin:.5rem 0;">Set a new password</h2>
+      <p style="color:var(--text-secondary);">You're verified — choose a new password below.</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -2323,7 +1871,7 @@ def auth_page():
         st.markdown(f"""
         <div style="text-align:center;padding:4rem 0;">
           {logo_img(70)}
-          <p style="color:var(--t3);margin-top:1rem;">Opening your workspace...</p>
+          <p style="color:var(--text-muted);margin-top:1rem;">Opening your workspace...</p>
         </div>
         """, unsafe_allow_html=True)
         st.stop()
@@ -2340,8 +1888,8 @@ def auth_page():
             margin:0.5rem 0;">
             LifeHub
           </h1>
-          <p style="color:var(--t2);font-size:1.05rem;margin:0;">{APP_TAGLINE}</p>
-          <p style="color:var(--t3);font-size:0.85rem;margin-top:0.3rem;">Secure social tools, AI support, habits, events, and team channels</p>
+          <p style="color:var(--text-secondary);font-size:1.05rem;margin:0;">{APP_TAGLINE}</p>
+          <p style="color:var(--text-muted);font-size:0.85rem;margin-top:0.3rem;">Secure social tools, AI support, habits, events, and team channels</p>
         </div>
         """, unsafe_allow_html=True)
 
@@ -2486,30 +2034,30 @@ def auth_page():
 
         st.markdown(f"""
         <div class="card auth-product-card" style="text-align:center;">
-          <h3 style="color:var(--yellow);font-family:'Space Grotesk',sans-serif;font-size:1.4rem;margin:0;">
+          <h3 style="color:var(--primary);font-family:'Space Grotesk',sans-serif;font-size:1.4rem;margin:0;">
             Everything your community needs in one place.
           </h3>
-          <p style="color:var(--t2);font-size:0.92rem;margin:0.4rem 0 1.3rem;">
+          <p style="color:var(--text-secondary);font-size:0.92rem;margin:0.4rem 0 1.3rem;">
             A refined dashboard for posts, AI assistance, live messaging, planning, habits, and profiles.
           </p>
           
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.5rem;margin:0.5rem 0 1rem;">
             <div style="background:var(--bg2);border-radius:12px;padding:1rem 0.5rem;border:1px solid rgba(88,101,242,0.05);">
-              <div style="font-size:1.8rem;font-weight:900;color:var(--yellow);">{member_count}</div>
-              <div style="color:var(--t3);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;">Members</div>
+              <div style="font-size:1.8rem;font-weight:900;color:var(--primary);">{member_count}</div>
+              <div style="color:var(--text-muted);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;">Members</div>
             </div>
             <div style="background:var(--bg2);border-radius:12px;padding:1rem 0.5rem;border:1px solid rgba(88,101,242,0.05);">
-              <div style="font-size:1.8rem;font-weight:900;color:var(--yellow);">{post_count}</div>
-              <div style="color:var(--t3);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;">Posts</div>
+              <div style="font-size:1.8rem;font-weight:900;color:var(--primary);">{post_count}</div>
+              <div style="color:var(--text-muted);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;">Posts</div>
             </div>
             <div style="background:var(--bg2);border-radius:12px;padding:1rem 0.5rem;border:1px solid rgba(88,101,242,0.05);">
-              <div style="font-size:1.8rem;font-weight:900;color:var(--yellow);">{msg_count}</div>
-              <div style="color:var(--t3);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;">Messages</div>
+              <div style="font-size:1.8rem;font-weight:900;color:var(--primary);">{msg_count}</div>
+              <div style="color:var(--text-muted);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;">Messages</div>
             </div>
           </div>
           
           <div style="margin-top:0.5rem;padding-top:1rem;border-top:1px solid rgba(88,101,242,0.06);">
-            <p style="color:var(--t3);font-size:0.7rem;margin:0;">AI assistant powered by Taha</p>
+            <p style="color:var(--text-muted);font-size:0.7rem;margin:0;">AI assistant powered by Taha</p>
           </div>
         </div>
         """, unsafe_allow_html=True)
@@ -2547,15 +2095,15 @@ def view_user_profile(user_id):
       <div style="display:flex;align-items:center;gap:1.5rem;margin-bottom:1.5rem;">
         {avatar_html(user.get('username', 'user'), user.get('avatar_url'), 80, 'av-lg')}
         <div>
-          <h2 style="margin:0;font-family:'Space Grotesk',sans-serif;color:var(--yellow);">@{safe_username}</h2>
-          <div style="color:var(--t3);font-size:.78rem;margin-top:.2rem;">
+          <h2 style="margin:0;font-family:'Space Grotesk',sans-serif;color:var(--primary);">@{safe_username}</h2>
+          <div style="color:var(--text-muted);font-size:.78rem;margin-top:.2rem;">
             {'✓ Verified · ' if user.get('is_verified') else ''}{'Admin · ' if user.get('is_admin') else ''}{escape_html(user.get('profile_badge') or 'Member')}
           </div>
-          <div style="color:{'var(--yellow)' if is_online else 'var(--t3)'};font-size:.9rem;margin:.2rem 0;">
+          <div style="color:{'var(--primary)' if is_online else 'var(--text-muted)'};font-size:.9rem;margin:.2rem 0;">
             {'<span class="online"></span>Online now' if is_online else '⚫ Offline'}
           </div>
-          <p style="color:var(--t2);margin:.3rem 0 0;">{safe_bio}</p>
-          <p style="color:var(--t3);font-size:.8rem;margin-top:.3rem;">Joined {user.get('created_at','')[:10]}</p>
+          <p style="color:var(--text-secondary);margin:.3rem 0 0;">{safe_bio}</p>
+          <p style="color:var(--text-muted);font-size:.8rem;margin-top:.3rem;">Joined {user.get('created_at','')[:10]}</p>
         </div>
       </div>
       
@@ -2620,43 +2168,43 @@ def view_user_profile(user_id):
     st.markdown("### 📝 User's Posts")
     posts = sb.table("posts").select("*").eq("user_id", user["id"]).order("created_at", desc=True).limit(10).execute()
     if not posts.data:
-        st.markdown("<p style='color:var(--t3);'>No posts yet.</p>", unsafe_allow_html=True)
+        st.markdown("<p style='color:var(--text-muted);'>No posts yet.</p>", unsafe_allow_html=True)
     else:
         for p in posts.data:
             st.markdown(f"""
             <div class="post">
-              <p style="margin:0;color:var(--t);">{linkify_mentions(p['content'])}</p>
-              <small style="color:var(--t3);">{ago(p['created_at'])}</small>
+              <p style="margin:0;color:var(--text-primary);">{linkify_mentions(p['content'])}</p>
+              <small style="color:var(--text-muted);">{ago(p['created_at'])}</small>
             </div>
             """, unsafe_allow_html=True)
     
     st.markdown("### ✅ User's Habits")
     habits = sb.table("habits").select("*").eq("user_id", user["id"]).limit(10).execute()
     if not habits.data:
-        st.markdown("<p style='color:var(--t3);'>No habits yet.</p>", unsafe_allow_html=True)
+        st.markdown("<p style='color:var(--text-muted);'>No habits yet.</p>", unsafe_allow_html=True)
     else:
         for h in habits.data:
             safe_habit = escape_html(h.get("name", "Habit"))
             safe_emoji = escape_html(h.get("emoji", "⭐"))
             st.markdown(f"""
             <div class="card" style="padding:0.8rem 1.2rem;">
-              <span style="font-size:1rem;font-weight:700;color:var(--yellow);">{safe_emoji} {safe_habit}</span>
-              <span style="color:var(--t3);font-size:.8rem;margin-left:.5rem;">{h['frequency']}</span>
+              <span style="font-size:1rem;font-weight:700;color:var(--primary);">{safe_emoji} {safe_habit}</span>
+              <span style="color:var(--text-muted);font-size:.8rem;margin-left:.5rem;">{h['frequency']}</span>
             </div>
             """, unsafe_allow_html=True)
     
     st.markdown("### 📅 User's Events")
     events = sb.table("events").select("*").eq("user_id", user["id"]).gte("event_date", datetime.now(timezone.utc).isoformat()).order("event_date").limit(10).execute()
     if not events.data:
-        st.markdown("<p style='color:var(--t3);'>No upcoming events.</p>", unsafe_allow_html=True)
+        st.markdown("<p style='color:var(--text-muted);'>No upcoming events.</p>", unsafe_allow_html=True)
     else:
         for ev in events.data:
             dt = ev["event_date"][:16].replace("T"," ")
             safe_title = escape_html(ev.get("title", "Event"))
             st.markdown(f"""
-            <div class="ev-card" style="border-left-color:var(--yellow);padding:0.8rem 1.2rem;">
-              <div style="font-weight:700;color:var(--yellow);">{safe_title}</div>
-              <div style="color:var(--t3);font-size:.8rem;">📅 {dt}</div>
+            <div class="ev-card" style="border-left-color:var(--primary);padding:0.8rem 1.2rem;">
+              <div style="font-weight:700;color:var(--primary);">{safe_title}</div>
+              <div style="color:var(--text-muted);font-size:.8rem;">📅 {dt}</div>
             </div>
             """, unsafe_allow_html=True)
     
@@ -2775,8 +2323,8 @@ def home_page():
         if mention_count > 0:
             st.markdown(f"""
             <div style="background:rgba(242,63,66,0.08);border:1px solid rgba(242,63,66,0.2);
-              border-radius:var(--r);padding:.75rem 1rem;margin-top:.8rem;">
-              <div style="color:var(--red);font-weight:700;font-size:.85rem;">🔔 {mention_count} Mention{"s" if mention_count>1 else ""}</div>
+              border-radius:var(--radius);padding:.75rem 1rem;margin-top:.8rem;">
+              <div style="color:var(--danger);font-weight:700;font-size:.85rem;">🔔 {mention_count} Mention{"s" if mention_count>1 else ""}</div>
             </div>
             """, unsafe_allow_html=True)
             mentions = sb2.table("mentions").select("id").eq("mentioned_user_id", st.session_state.user_id).eq("is_read", False).eq("source_type", "post").order("created_at", desc=True).limit(5).execute()
@@ -2832,8 +2380,8 @@ def home_page():
             card("""
             <div style="text-align:center;padding:4rem 0;">
               <div style="font-size:5rem;margin-bottom:1.5rem;">🚀</div>
-              <p style="color:var(--t2);font-size:1.2rem;">No posts yet — be the first!</p>
-              <p style="color:var(--t3);font-size:.9rem;">Share your thoughts with the community</p>
+              <p style="color:var(--text-secondary);font-size:1.2rem;">No posts yet — be the first!</p>
+              <p style="color:var(--text-muted);font-size:.9rem;">Share your thoughts with the community</p>
             </div>
             """)
             return
@@ -2852,13 +2400,13 @@ def home_page():
                   <div style="display:flex;align-items:center;gap:.8rem;margin-bottom:.8rem;">
                     {post_avatar}
                     <div>
-                      <div style="font-weight:700;color:{'var(--yellow)' if mine else 'var(--t)'};font-size:1rem;">
+                      <div style="font-weight:700;color:{'var(--primary)' if mine else 'var(--text-primary)'};font-size:1rem;">
                         @{safe_username} {'<span class="badge">You</span>' if mine else ''}
                       </div>
-                      <div style="font-size:.75rem;color:var(--t3);">{ago(p['created_at'])}</div>
+                      <div style="font-size:.75rem;color:var(--text-muted);">{ago(p['created_at'])}</div>
                     </div>
                   </div>
-                  <p style="margin:0;color:var(--t);line-height:1.7;font-size:.95rem;">{content_html}</p>
+                  <p style="margin:0;color:var(--text-primary);line-height:1.7;font-size:.95rem;">{content_html}</p>
                   {render_attachment_preview(p.get('file_url'), p.get('file_name'), p.get('file_type'))}
                 </div>
                 """, unsafe_allow_html=True)
@@ -2894,7 +2442,7 @@ def home_page():
                             st.markdown(
                                 f'<div style="display:flex;gap:.55rem;align-items:flex-start;margin:.45rem 0;">'
                                 f'{cm_avatar}<div><strong>@{escape_html(cm["username"])}</strong> '
-                                f'<span style="color:var(--t3);font-size:.75rem;">· {ago(cm["created_at"])}</span><br>'
+                                f'<span style="color:var(--text-muted);font-size:.75rem;">· {ago(cm["created_at"])}</span><br>'
                                 f'{linkify_mentions(cm["content"])}</div></div>',
                                 unsafe_allow_html=True,
                             )
@@ -2956,7 +2504,7 @@ def notifications_page():
             st.rerun()
 
     if not rows_data:
-        card("<p style='color:var(--t3);text-align:center;'>No notifications yet.</p>")
+        card("<p style='color:var(--text-muted);text-align:center;'>No notifications yet.</p>")
         return
 
     actor_profiles = get_profiles_map(sb, [n.get("actor_id") for n in rows_data])
@@ -2970,11 +2518,11 @@ def notifications_page():
             <div style="display:flex;gap:.75rem;align-items:flex-start;">
               {actor_avatar}
             <div>
-              <div style="font-weight:800;color:var(--yellow);">{escape_html(n.get('title', 'Notification'))} {status}</div>
-              <div style="color:var(--t2);font-size:.9rem;margin-top:.25rem;">{safe_multiline(n.get('body', ''))}</div>
+              <div style="font-weight:800;color:var(--primary);">{escape_html(n.get('title', 'Notification'))} {status}</div>
+              <div style="color:var(--text-secondary);font-size:.9rem;margin-top:.25rem;">{safe_multiline(n.get('body', ''))}</div>
             </div>
             </div>
-            <div style="color:var(--t3);font-size:.75rem;white-space:nowrap;">{ago(n.get('created_at', ''))}</div>
+            <div style="color:var(--text-muted);font-size:.75rem;white-space:nowrap;">{ago(n.get('created_at', ''))}</div>
           </div>
         </div>
         """, unsafe_allow_html=True)
@@ -2998,7 +2546,7 @@ def discover_page():
         )
 
     if not users_data:
-        card("<p style='color:var(--t3);text-align:center;'>No members found.</p>")
+        card("<p style='color:var(--text-muted);text-align:center;'>No members found.</p>")
         return
 
     user_ids = [u["id"] for u in users_data]
@@ -3035,9 +2583,9 @@ def discover_page():
             badge = "✓ Verified" if u.get("is_verified") else (u.get("profile_badge") or "Member")
             st.markdown(f"""
             <div class="card" style="padding:1rem 1.2rem;margin-bottom:.35rem;">
-              <div style="font-weight:900;color:var(--yellow);">@{safe_username}</div>
-              <div style="color:var(--t3);font-size:.76rem;">{escape_html(badge)} · {followers} followers</div>
-              <div style="color:var(--t2);font-size:.88rem;margin-top:.35rem;">{safe_bio}</div>
+              <div style="font-weight:900;color:var(--primary);">@{safe_username}</div>
+              <div style="color:var(--text-muted);font-size:.76rem;">{escape_html(badge)} · {followers} followers</div>
+              <div style="color:var(--text-secondary);font-size:.88rem;margin-top:.35rem;">{safe_bio}</div>
             </div>
             """, unsafe_allow_html=True)
         with c_follow:
@@ -3075,8 +2623,8 @@ def ai_chat_page():
         st.markdown("""
         <div class="card" style="text-align:center;padding:2.5rem;">
           <div style="font-size:2.5rem;margin-bottom:.8rem;">🔑</div>
-          <h3 style="margin:0 0 .5rem;color:var(--yellow);">Groq API key missing</h3>
-          <p style="color:var(--t2);">Add <code style="color:var(--yellow);">GROQ_API_KEY</code> to Streamlit Secrets or your local <code style="color:var(--yellow);">.env</code> file to enable AI chat.</p>
+          <h3 style="margin:0 0 .5rem;color:var(--primary);">Groq API key missing</h3>
+          <p style="color:var(--text-secondary);">Add <code style="color:var(--primary);">GROQ_API_KEY</code> to Streamlit Secrets or your local <code style="color:var(--primary);">.env</code> file to enable AI chat.</p>
         </div>
         """, unsafe_allow_html=True)
         return
@@ -3215,7 +2763,7 @@ def render_attachment_html(file_url, file_name, file_type):
     return (f'<a href="{file_url}" download="{safe_name}" '
             f'style="display:inline-flex;align-items:center;gap:.4rem;margin-top:.4rem;'
             f'background:rgba(88,101,242,0.12);padding:.4rem .8rem;border-radius:8px;'
-            f'color:var(--yellow);text-decoration:none;font-size:.85rem;">📎 {safe_name}</a>')
+            f'color:var(--primary);text-decoration:none;font-size:.85rem;">📎 {safe_name}</a>')
 
 
 @st.fragment(run_every=1)
@@ -3244,7 +2792,7 @@ def render_live_messages_fragment(sb, tid, sel, target_avatar):
     typing = is_other_typing(sb, tid, st.session_state.user_id)
 
     if not msg_rows and not typing:
-        st.markdown("<p style='color:var(--t3);text-align:center;padding:2rem;'>Start the conversation 👋</p>", unsafe_allow_html=True)
+        st.markdown("<p style='color:var(--text-muted);text-align:center;padding:2rem;'>Start the conversation 👋</p>", unsafe_allow_html=True)
         return
 
     my_avatar_inner = avatar_html(st.session_state.username, st.session_state.user.get("avatar_url"), 36)
@@ -3291,7 +2839,7 @@ def render_live_messages_fragment(sb, tid, sel, target_avatar):
         <div class="msg-group">
           <div class="av-wrap">{their_avatar_inner}</div>
           <div class="msg-group-body">
-            <div class="msg-line" style="color:var(--t3);font-style:italic;">@{sel} is typing...</div>
+            <div class="msg-line" style="color:var(--text-muted);font-style:italic;">@{sel} is typing...</div>
           </div>
         </div>
         """, unsafe_allow_html=True)
@@ -3311,7 +2859,7 @@ def live_chat_page():
         lambda: (sb.table("profiles").select("id,username,last_seen,avatar_url").neq("id", st.session_state.user_id).execute().data or [])
     )
     if not user_rows:
-        card("<p style='color:var(--t3);text-align:center;'>No other users yet.</p>")
+        card("<p style='color:var(--text-muted);text-align:center;'>No other users yet.</p>")
         return
 
     unread = get_unread_counts(sb, st.session_state.user_id)
@@ -3340,7 +2888,7 @@ def live_chat_page():
                 st.caption(f"{len(results.data)} result(s)")
                 for r in results.data:
                     who = "You" if r["sender_id"] == st.session_state.user_id else f"@{sel}"
-                    st.markdown(f"<div class='msg-line' style='padding:.3rem .5rem;'><b style='color:var(--yellow);'>{escape_html(who)}:</b> {linkify_mentions(r['content'])} <span style='color:var(--t3);font-size:.7rem;'>· {ago(r['created_at'])}</span></div>", unsafe_allow_html=True)
+                    st.markdown(f"<div class='msg-line' style='padding:.3rem .5rem;'><b style='color:var(--primary);'>{escape_html(who)}:</b> {linkify_mentions(r['content'])} <span style='color:var(--text-muted);font-size:.7rem;'>· {ago(r['created_at'])}</span></div>", unsafe_allow_html=True)
             else:
                 st.caption("No matches.")
 
@@ -3356,11 +2904,11 @@ def live_chat_page():
     with head_col:
         st.markdown(f"""
         <div style="display:flex;align-items:center;gap:.8rem;margin-bottom:1.2rem;
-          padding:1rem 1.4rem;background:var(--card);border-radius:var(--r2);border:1px solid rgba(88,101,242,0.12);">
+          padding:1rem 1.4rem;background:var(--card);border-radius:var(--radius-lg);border:1px solid rgba(88,101,242,0.12);">
           <div class="av-wrap">{avatar_html(sel, target_avatar, 42)}<span class="status-badge {status_cls}"></span></div>
           <div>
             <div style="font-weight:700;font-size:1rem;">@{escape_html(sel)}</div>
-            <div style="font-size:.78rem;color:{'var(--yellow)' if is_onl else 'var(--t3)'};">
+            <div style="font-size:.78rem;color:{'var(--primary)' if is_onl else 'var(--text-muted)'};">
               {'Online' if is_onl else 'Offline'}
             </div>
           </div>
@@ -3466,7 +3014,7 @@ def calendar_page():
         }
 
         if not evs_data:
-            card("<p style='color:var(--t3);text-align:center;'>No events. Add one! 🗓️</p>")
+            card("<p style='color:var(--text-muted);text-align:center;'>No events. Add one! 🗓️</p>")
         else:
             for ev in evs_data:
                 acc = cmap.get(ev.get("color", "blurple"), "#5865F2")
@@ -3478,8 +3026,8 @@ def calendar_page():
                     st.markdown(f"""
                     <div class="ev-card" style="border-left-color:{acc};padding:1.2rem;">
                       <div style="font-weight:700;color:{acc};">{safe_title}</div>
-                      <div style="color:var(--t3);font-size:.8rem;margin-top:.2rem;">📅 {dt}</div>
-                      {f"<p style='margin:.5rem 0 0;color:var(--t2);font-size:.9rem;'>{safe_description}</p>" if ev.get('description') else ''}
+                      <div style="color:var(--text-muted);font-size:.8rem;margin-top:.2rem;">📅 {dt}</div>
+                      {f"<p style='margin:.5rem 0 0;color:var(--text-secondary);font-size:.9rem;'>{safe_description}</p>" if ev.get('description') else ''}
                     </div>
                     """, unsafe_allow_html=True)
                 with cd:
@@ -3538,7 +3086,7 @@ def render_channel_messages_fragment(sb, channel_id, channel_name):
     my_channel_role = get_channel_role(sb, channel_id, st.session_state.user_id)
 
     if not msgs.data:
-        st.markdown(f"<p style='color:var(--t3);text-align:center;padding:2rem;'>No messages in #{escape_html(channel_name)} yet. Say hello! 👋</p>", unsafe_allow_html=True)
+        st.markdown(f"<p style='color:var(--text-muted);text-align:center;padding:2rem;'>No messages in #{escape_html(channel_name)} yet. Say hello! 👋</p>", unsafe_allow_html=True)
         return
     sender_profiles = get_profiles_map(sb, [m.get("sender_id") for m in (msgs.data or [])])
 
@@ -3639,7 +3187,7 @@ def channels_page():
                     st.rerun()
 
     if not channels:
-        card("<p style='color:var(--t3);text-align:center;'>No channels yet — create the first one!</p>")
+        card("<p style='color:var(--text-muted);text-align:center;'>No channels yet — create the first one!</p>")
         return
 
     col_list, col_chat = st.columns([1, 3], gap="medium")
@@ -3696,9 +3244,9 @@ def channels_page():
         my_role = get_channel_role(sb, active_channel["id"], st.session_state.user_id)
         st.markdown(f"""
         <div style="margin-bottom:1rem;">
-          <div style="font-weight:800;font-size:1.2rem;color:var(--yellow);">#{safe_channel_name}</div>
-          <div style="color:var(--t3);font-size:.82rem;">{safe_channel_desc}</div>
-          <div style="color:var(--t3);font-size:.76rem;margin-top:.3rem;">Role: {escape_html(my_role)} · Invite: <code>{escape_html(active_channel.get('invite_code', ''))}</code></div>
+          <div style="font-weight:800;font-size:1.2rem;color:var(--primary);">#{safe_channel_name}</div>
+          <div style="color:var(--text-muted);font-size:.82rem;">{safe_channel_desc}</div>
+          <div style="color:var(--text-muted);font-size:.76rem;margin-top:.3rem;">Role: {escape_html(my_role)} · Invite: <code>{escape_html(active_channel.get('invite_code', ''))}</code></div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -3828,7 +3376,7 @@ def habits_page():
             week_ago = (date.today() - timedelta(days=7)).isoformat()
 
             if not hbs.data:
-                card("<p style='color:var(--t3);'>No habits yet! Create your first one ✨</p>")
+                card("<p style='color:var(--text-muted);'>No habits yet! Create your first one ✨</p>")
             else:
                 habit_ids = [h["id"] for h in hbs.data]
                 log_rows = []
@@ -3847,7 +3395,7 @@ def habits_page():
                     is_done = today in habit_logs
                     prog = min(week_count / 7, 1.0)
                     streak = compute_streak_from_log_dates(habit_logs)
-                    streak_html = f'<span style="color:var(--yellow);font-weight:700;">🔥 {streak}d</span>' if streak > 0 else ''
+                    streak_html = f'<span style="color:var(--primary);font-weight:700;">🔥 {streak}d</span>' if streak > 0 else ''
                     safe_habit = escape_html(h.get("name", "Habit"))
                     safe_emoji = escape_html(h.get("emoji", "⭐"))
                     cc1, cc2 = st.columns([4, 1])
@@ -3855,11 +3403,11 @@ def habits_page():
                         st.markdown(f"""
                         <div class="card" style="padding:1.2rem;">
                           <div style="display:flex;justify-content:space-between;align-items:center;">
-                            <span style="font-size:1.1rem;font-weight:700;color:var(--yellow);">{safe_emoji} {safe_habit} {'🌍' if h.get('is_shared') else ''}</span>
-                            <span style="color:{'var(--yellow)' if is_done else 'var(--t3)'};">{'✅ Done' if is_done else '⬜ Pending'}</span>
+                            <span style="font-size:1.1rem;font-weight:700;color:var(--primary);">{safe_emoji} {safe_habit} {'🌍' if h.get('is_shared') else ''}</span>
+                            <span style="color:{'var(--primary)' if is_done else 'var(--text-muted)'};">{'✅ Done' if is_done else '⬜ Pending'}</span>
                           </div>
                           <div style="display:flex;justify-content:space-between;align-items:center;margin-top:.4rem;">
-                            <div style="color:var(--t3);font-size:.8rem;">{week_count}/7 days this week</div>
+                            <div style="color:var(--text-muted);font-size:.8rem;">{week_count}/7 days this week</div>
                             {streak_html}
                           </div>
                           <div class="hbar"><div class="hfill" style="width:{int(prog * 100)}%;"></div></div>
@@ -3890,7 +3438,7 @@ def habits_page():
                      .order("created_at", desc=True).limit(20).execute().data or [])
         )
         if not shared:
-            card("<p style='color:var(--t3);'>No shared habits yet.</p>")
+            card("<p style='color:var(--text-muted);'>No shared habits yet.</p>")
         else:
             for h in shared:
                 safe_habit = escape_html(h.get("name", "Habit"))
@@ -3898,9 +3446,9 @@ def habits_page():
                 safe_username = escape_html(h.get("username", "user"))
                 st.markdown(f"""
                 <div class="card" style="padding:1.2rem;">
-                  <strong style="color:var(--yellow);font-size:1.05rem;">{safe_emoji} {safe_habit}</strong>
-                  <span style="color:var(--t3);"> by @{safe_username}</span>
-                  <div style="color:var(--t3);font-size:.8rem;margin-top:.2rem;">{h['frequency']}</div>
+                  <strong style="color:var(--primary);font-size:1.05rem;">{safe_emoji} {safe_habit}</strong>
+                  <span style="color:var(--text-muted);"> by @{safe_username}</span>
+                  <div style="color:var(--text-muted);font-size:.8rem;margin-top:.2rem;">{h['frequency']}</div>
                 </div>
                 """, unsafe_allow_html=True)
 
@@ -3931,14 +3479,14 @@ def habits_page():
             })
         leaderboard = sorted(leaderboard, key=lambda x: x["streak"], reverse=True)[:15]
         if not leaderboard:
-            card("<p style='color:var(--t3);'>No shared streaks yet.</p>")
+            card("<p style='color:var(--text-muted);'>No shared streaks yet.</p>")
         for i, row in enumerate(leaderboard, start=1):
             medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else f"#{i}"
             st.markdown(f"""
             <div class="card" style="padding:1rem 1.2rem;display:flex;justify-content:space-between;align-items:center;">
-              <div><strong style="color:var(--yellow);">{medal} @{escape_html(row['username'])}</strong>
-              <div style="color:var(--t2);font-size:.88rem;">{escape_html(row['emoji'])} {escape_html(row['habit'])}</div></div>
-              <div style="font-size:1.2rem;font-weight:900;color:var(--yellow);">🔥 {row['streak']}d</div>
+              <div><strong style="color:var(--primary);">{medal} @{escape_html(row['username'])}</strong>
+              <div style="color:var(--text-secondary);font-size:.88rem;">{escape_html(row['emoji'])} {escape_html(row['habit'])}</div></div>
+              <div style="font-size:1.2rem;font-weight:900;color:var(--primary);">🔥 {row['streak']}d</div>
             </div>
             """, unsafe_allow_html=True)
 
@@ -3960,16 +3508,16 @@ def profile_page():
     col_av, col_inf, col_ed = st.columns([1, 4, 1])
     with col_av:
         if avatar_url and avatar_url.startswith("data:image"):
-            st.markdown(f'<img src="{avatar_url}" style="width:100px;height:100px;border-radius:50%;border:3px solid var(--yellow);box-shadow:0 0 60px var(--glow);object-fit:cover;">', unsafe_allow_html=True)
+            st.markdown(f'<img src="{avatar_url}" style="width:100px;height:100px;border-radius:50%;border:3px solid var(--primary);box-shadow:0 0 60px var(--primary);object-fit:cover;">', unsafe_allow_html=True)
         else:
             st.markdown(f'<div class="av av-lg" style="margin:auto;">{initials}</div>', unsafe_allow_html=True)
 
     with col_inf:
         st.markdown(f"""
         <div style="padding-left:.5rem;">
-          <h2 style="margin:0;font-family:'Space Grotesk',sans-serif;background:linear-gradient(135deg,var(--yellow),var(--yellow4));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">@{safe_username}</h2>
-          <p style="color:var(--t2);margin:.3rem 0 0;">{safe_bio}</p>
-          <p style="color:var(--t3);font-size:.8rem;margin-top:.3rem;">Joined {u.get('created_at', '')[:10]}</p>
+          <h2 style="margin:0;font-family:'Space Grotesk',sans-serif;background:linear-gradient(135deg,var(--primary),var(--secondary));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">@{safe_username}</h2>
+          <p style="color:var(--text-secondary);margin:.3rem 0 0;">{safe_bio}</p>
+          <p style="color:var(--text-muted);font-size:.8rem;margin-top:.3rem;">Joined {u.get('created_at', '')[:10]}</p>
         </div>
         """, unsafe_allow_html=True)
     with col_ed:
@@ -4028,15 +3576,15 @@ def profile_page():
                  .order("created_at", desc=True).limit(10).execute().data or [])
     )
     if not my_posts:
-        st.markdown("<p style='color:var(--t3);'>No posts yet.</p>", unsafe_allow_html=True)
+        st.markdown("<p style='color:var(--text-muted);'>No posts yet.</p>", unsafe_allow_html=True)
     else:
         for p in my_posts:
             ca, cb = st.columns([5, 1])
             with ca:
                 st.markdown(f"""
                 <div class="post" style="padding:1.2rem 1.5rem;">
-                  <p style="margin:0;color:var(--t);">{linkify_mentions(p['content'])}</p>
-                  <small style="color:var(--t3);">{ago(p['created_at'])}</small>
+                  <p style="margin:0;color:var(--text-primary);">{linkify_mentions(p['content'])}</p>
+                  <small style="color:var(--text-muted);">{ago(p['created_at'])}</small>
                 </div>
                 """, unsafe_allow_html=True)
             with cb:
@@ -4061,7 +3609,7 @@ def sidebar():
             {logo_html}
             <span class="brand-name">LifeHub</span>
           </div>
-          <div style="color:var(--t3);font-size:.7rem;">Professional Workspace</div>
+          <div style="color:var(--text-muted);font-size:.7rem;">Professional Workspace</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -4095,13 +3643,13 @@ def sidebar():
             with c_meta:
                 total_alerts = unread_mentions + unread_notifications
                 alert_html = (
-                    f'<span style="background:var(--red);color:white;border-radius:99px;'
+                    f'<span style="background:var(--danger);color:white;border-radius:99px;'
                     f'padding:.05rem .35rem;font-size:.65rem;font-weight:700;margin-left:.3rem;">{total_alerts}</span>'
                     if total_alerts else ""
                 )
                 st.markdown(
-                    f'<div style="font-weight:700;font-size:.9rem;color:var(--yellow);">@{escape_html(st.session_state.username)}</div>'
-                    f'<div style="font-size:.7rem;color:var(--yellow);">Active now {alert_html}</div>',
+                    f'<div style="font-weight:700;font-size:.9rem;color:var(--primary);">@{escape_html(st.session_state.username)}</div>'
+                    f'<div style="font-size:.7rem;color:var(--primary);">Active now {alert_html}</div>',
                     unsafe_allow_html=True,
                 )
 
@@ -4195,13 +3743,13 @@ def admin_page():
             col_i, col_a, col_b, col_v, col_ba = st.columns([3, 1, 1, 1, 1])
             with col_i:
                 st.markdown(f"""
-                <div style="padding:.5rem;background:var(--card);border-radius:var(--r);margin-bottom:.3rem;">
-                  <span style="color:var(--yellow);font-weight:700;">@{safe_username}</span>
-                  {'<span style="color:var(--t3);font-size:.75rem;"> (you)</span>' if is_me else ''}
-                  {'<span style="color:var(--green);font-size:.75rem;"> 🟢</span>' if is_onl else ''}
-                  {'<span style="color:var(--red);font-size:.75rem;"> BANNED</span>' if u.get("is_banned") else ''}
-                  {'<span style="color:var(--yellow);font-size:.75rem;"> ADMIN</span>' if u.get("is_admin") else ''}
-                  <div style="color:var(--t3);font-size:.72rem;">{safe_email}</div>
+                <div style="padding:.5rem;background:var(--card);border-radius:var(--radius);margin-bottom:.3rem;">
+                  <span style="color:var(--primary);font-weight:700;">@{safe_username}</span>
+                  {'<span style="color:var(--text-muted);font-size:.75rem;"> (you)</span>' if is_me else ''}
+                  {'<span style="color:var(--success);font-size:.75rem;"> 🟢</span>' if is_onl else ''}
+                  {'<span style="color:var(--danger);font-size:.75rem;"> BANNED</span>' if u.get("is_banned") else ''}
+                  {'<span style="color:var(--primary);font-size:.75rem;"> ADMIN</span>' if u.get("is_admin") else ''}
+                  <div style="color:var(--text-muted);font-size:.72rem;">{safe_email}</div>
                 </div>
                 """, unsafe_allow_html=True)
             if not is_me:
@@ -4247,10 +3795,10 @@ def admin_page():
             col_p, col_d = st.columns([5, 1])
             with col_p:
                 st.markdown(f"""
-                <div style="background:var(--card);border-radius:var(--r);padding:.8rem 1rem;margin-bottom:.3rem;border-left:3px solid var(--yellow);">
-                  <span style="color:var(--yellow);font-weight:700;">@{safe_username}</span>
-                  <span style="color:var(--t3);font-size:.72rem;"> · {ago(p['created_at'])}</span>
-                  <p style="margin:.3rem 0 0;color:var(--t);font-size:.88rem;">{safe_content}</p>
+                <div style="background:var(--card);border-radius:var(--radius);padding:.8rem 1rem;margin-bottom:.3rem;border-left:3px solid var(--primary);">
+                  <span style="color:var(--primary);font-weight:700;">@{safe_username}</span>
+                  <span style="color:var(--text-muted);font-size:.72rem;"> · {ago(p['created_at'])}</span>
+                  <p style="margin:.3rem 0 0;color:var(--text-primary);font-size:.88rem;">{safe_content}</p>
                 </div>
                 """, unsafe_allow_html=True)
             with col_d:
@@ -4287,10 +3835,10 @@ def admin_page():
             with col_c:
                 member_count = channel_member_counts.get(ch["id"], 0)
                 st.markdown(f"""
-                <div style="background:var(--card);border-radius:var(--r);padding:.8rem 1rem;margin-bottom:.3rem;">
-                  <span style="color:var(--yellow);font-weight:700;"># {safe_channel_name}</span>
-                  <span style="color:var(--t3);font-size:.75rem;"> · {member_count} members</span>
-                  <p style="margin:.2rem 0 0;color:var(--t2);font-size:.82rem;">{safe_channel_desc}</p>
+                <div style="background:var(--card);border-radius:var(--radius);padding:.8rem 1rem;margin-bottom:.3rem;">
+                  <span style="color:var(--primary);font-weight:700;"># {safe_channel_name}</span>
+                  <span style="color:var(--text-muted);font-size:.75rem;"> · {member_count} members</span>
+                  <p style="margin:.2rem 0 0;color:var(--text-secondary);font-size:.82rem;">{safe_channel_desc}</p>
                 </div>
                 """, unsafe_allow_html=True)
             with col_dc:
@@ -4316,11 +3864,11 @@ def admin_page():
             <div class="card" style="padding:1rem 1.2rem;">
               <div style="display:flex;justify-content:space-between;gap:1rem;">
                 <div>
-                  <strong style="color:var(--yellow);">{escape_html(r.get('target_type'))}</strong>
-                  <span style="color:var(--t3);font-size:.75rem;"> · {escape_html(r.get('status'))} · {ago(r.get('created_at', ''))}</span>
-                  <p style="color:var(--t2);margin:.35rem 0 0;">{safe_multiline(r.get('reason', ''))}</p>
+                  <strong style="color:var(--primary);">{escape_html(r.get('target_type'))}</strong>
+                  <span style="color:var(--text-muted);font-size:.75rem;"> · {escape_html(r.get('status'))} · {ago(r.get('created_at', ''))}</span>
+                  <p style="color:var(--text-secondary);margin:.35rem 0 0;">{safe_multiline(r.get('reason', ''))}</p>
                 </div>
-                <code style="color:var(--t3);font-size:.68rem;">{escape_html(r.get('target_id'))}</code>
+                <code style="color:var(--text-muted);font-size:.68rem;">{escape_html(r.get('target_id'))}</code>
               </div>
             </div>
             """, unsafe_allow_html=True)
@@ -4367,7 +3915,7 @@ def main():
         st.markdown(f"""
         <div style="text-align:center;padding:4rem 0;">
           {logo_img(70)}
-          <p style="color:var(--t3);margin-top:1rem;">Loading...</p>
+          <p style="color:var(--text-muted);margin-top:1rem;">Loading...</p>
         </div>
         """, unsafe_allow_html=True)
         return
