@@ -59,6 +59,9 @@ st.set_page_config(
 # CSS — Discord-Inspired Dark + Blurple Theme
 # ============================================================
 def inject_css():
+    if st.session_state.get("_css_loaded"):
+        return
+    st.session_state["_css_loaded"] = True
     st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&display=swap');
@@ -898,11 +901,23 @@ div[data-testid="stExpander"] {
   .hero-title { font-size: 2.35rem; }
 }
 
+.verified-badge {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  margin-left: 0.35rem;
+  flex-shrink: 0;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+  .cube, .cube-auth {
+    animation-duration: 16s !important;
+    animation-iteration-count: infinite !important;
   }
 }
 </style>
@@ -1137,14 +1152,56 @@ def render_cube():
         ("bottom", "👤", "Profile"),
     ]
     faces_html = "".join(
-        f'<div class="cube-face {cls}"><span class="ico">{ico}</span><span class="lbl">{lbl}</span></div>'
+        f'<div class="face {cls}"><span class="ico">{ico}</span><span class="lbl">{lbl}</span></div>'
         for cls, ico, lbl in faces
     )
-    st.markdown(f"""
-    <div class="cube-stage">
-      <div class="cube">{faces_html}</div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.components.v1.html(
+        f"""
+        <!DOCTYPE html>
+        <html><head><meta charset="utf-8"><style>
+        html, body {{
+          margin: 0; padding: 0; background: transparent; overflow: hidden;
+          font-family: Inter, sans-serif;
+        }}
+        .stage {{
+          width: 100%; height: 250px; display: flex; align-items: center; justify-content: center;
+          perspective: 1500px;
+        }}
+        .cube-auth {{
+          width: 150px; height: 150px; position: relative; transform-style: preserve-3d;
+          animation: spin3d 16s linear infinite;
+        }}
+        @keyframes spin3d {{
+          from {{ transform: rotateX(-22deg) rotateY(0deg); }}
+          to {{ transform: rotateX(-22deg) rotateY(360deg); }}
+        }}
+        .face {{
+          position: absolute; width: 150px; height: 150px;
+          background: linear-gradient(145deg, rgba(11,18,36,0.98), rgba(18,26,49,0.94));
+          border: 1px solid rgba(124,131,255,0.35);
+          border-radius: 20px; display: flex; flex-direction: column;
+          align-items: center; justify-content: center; gap: 8px;
+          box-shadow: 0 0 40px rgba(88,101,242,0.18), inset 0 0 0 1px rgba(255,255,255,0.05);
+          backface-visibility: hidden;
+        }}
+        .face .ico {{ font-size: 2.5rem; filter: drop-shadow(0 0 10px rgba(34,211,238,0.45)); }}
+        .face .lbl {{
+          font-size: 0.68rem; color: #a5f3fc; text-transform: uppercase;
+          letter-spacing: 0.14em; font-weight: 800;
+        }}
+        .face.front  {{ transform: translateZ(75px); }}
+        .face.back   {{ transform: rotateY(180deg) translateZ(75px); }}
+        .face.right  {{ transform: rotateY(90deg) translateZ(75px); }}
+        .face.left   {{ transform: rotateY(-90deg) translateZ(75px); }}
+        .face.top    {{ transform: rotateX(90deg) translateZ(75px); }}
+        .face.bottom {{ transform: rotateX(-90deg) translateZ(75px); }}
+        </style></head><body>
+        <div class="stage"><div class="cube-auth">{faces_html}</div></div>
+        </body></html>
+        """,
+        height=260,
+        scrolling=False,
+    )
 
 
 # ============================================================
@@ -1247,6 +1304,7 @@ def mark_mentions_read(sb, user_id, source_type=None):
             q = q.eq("source_type", source_type)
         q.execute()
         session_cache_clear(f"mention_count_{user_id}")
+        session_cache_clear(f"sidebar_badges_{user_id}")
     except Exception:
         pass
 
@@ -1278,6 +1336,7 @@ def create_notification(sb, user_id, actor_id, kind, title, body="", source_type
         }, returning=ReturnMethod.minimal).execute()
         session_cache_clear(f"notification_count_{user_id}")
         session_cache_clear(f"notifications_page_{user_id}")
+        session_cache_clear(f"sidebar_badges_{user_id}")
     except Exception:
         pass
 
@@ -1546,21 +1605,89 @@ def get_sb() -> Client:
     return sb
 
 def get_platform_stats():
-    """
-    Lightweight counters used on the login page and sidebar.
-    Kept uncached because RLS means anonymous and authenticated users can
-    legitimately see different counts in the same browser session.
-    """
+    """Public workspace counters via SECURITY DEFINER RPC (works on auth page too)."""
+    ttl = 45 if not st.session_state.get("logged_in") else 120
+
     def load():
         sb = get_sb()
         try:
-            member_count = sb.table("profiles").select("id", count="exact").execute().count or 0
-            post_count   = sb.table("posts").select("id", count="exact").execute().count or 0
-            msg_count    = sb.table("messages").select("id", count="exact").execute().count or 0
+            res = sb.rpc("get_platform_stats").execute()
+            row = (res.data or [None])[0]
+            if isinstance(row, dict):
+                return (
+                    int(row.get("members") or 0),
+                    int(row.get("posts") or 0),
+                    int(row.get("messages") or 0),
+                )
         except Exception:
-            member_count, post_count, msg_count = 0, 0, 0
-        return member_count, post_count, msg_count
-    return session_cache_get("platform_stats", 300, load)
+            pass
+        try:
+            member_count = sb.table("profiles").select("id", count="exact").execute().count or 0
+            post_count = sb.table("posts").select("id", count="exact").execute().count or 0
+            msg_count = sb.table("messages").select("id", count="exact").execute().count or 0
+            return member_count, post_count, msg_count
+        except Exception:
+            return 0, 0, 0
+
+    return session_cache_get("platform_stats", ttl, load)
+
+
+def get_sidebar_badges(sb, user_id):
+    """One cached round-trip for sidebar unread badges."""
+    def load():
+        try:
+            dm_rows = sb.table("messages").select("sender_id").eq("receiver_id", user_id).eq("is_read", False).execute()
+            dm_map = {}
+            for r in (dm_rows.data or []):
+                dm_map[r["sender_id"]] = dm_map.get(r["sender_id"], 0) + 1
+            mention_r = sb.table("mentions").select("id", count="exact").eq("mentioned_user_id", user_id).eq("is_read", False).execute()
+            notif_r = sb.table("notifications").select("id", count="exact").eq("user_id", user_id).eq("is_read", False).execute()
+            return sum(dm_map.values()), mention_r.count or 0, notif_r.count or 0
+        except Exception:
+            return 0, 0, 0
+
+    return session_cache_get(f"sidebar_badges_{user_id}", 25, load)
+
+
+def touch_last_seen(sb, user_id, every_seconds=90):
+    """Update presence without hitting Supabase on every page click."""
+    now = time.time()
+    if now - st.session_state.get("_last_seen_touch", 0) < every_seconds:
+        return
+    try:
+        ts = datetime.now(timezone.utc).isoformat()
+        sb.table("profiles").update({"last_seen": ts}).eq("id", user_id).execute()
+        st.session_state["_last_seen_touch"] = now
+        if st.session_state.get("user"):
+            st.session_state.user["last_seen"] = ts
+        session_cache_clear("member_list_profiles")
+    except Exception:
+        pass
+
+
+def get_profile_page_stats(sb, user_id):
+    def load():
+        try:
+            followers = sb.table("user_follows").select("id", count="exact").eq("following_id", user_id).execute().count or 0
+            following = sb.table("user_follows").select("id", count="exact").eq("follower_id", user_id).execute().count or 0
+            posts = sb.table("posts").select("id", count="exact").eq("user_id", user_id).execute().count or 0
+            habits = sb.table("habits").select("id", count="exact").eq("user_id", user_id).execute().count or 0
+            messages = sb.table("messages").select("id", count="exact").eq("sender_id", user_id).execute().count or 0
+            return followers, following, posts, habits, messages
+        except Exception:
+            return 0, 0, 0, 0, 0
+
+    return session_cache_get(f"profile_page_stats_{user_id}", 30, load)
+
+
+def verified_badge_html(size=18):
+    return (
+        f'<span class="verified-badge" title="Verified account">'
+        f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" aria-label="Verified">'
+        f'<circle cx="12" cy="12" r="12" fill="#1D9BF0"/>'
+        f'<path d="M7 12.5l3 3 7-7" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>'
+        f'</svg></span>'
+    )
 
 def hp(p: str) -> str:
     # Deprecated: password hashing is now handled entirely by Supabase
@@ -1669,16 +1796,18 @@ def mark_mentions_read(sb, user_id, source_type=None):
             q = q.eq("source_type", source_type)
         q.execute()
         session_cache_clear(f"mention_count_{user_id}")
+        session_cache_clear(f"sidebar_badges_{user_id}")
     except Exception:
         pass
 
-def check_rate_limit(action: str, limit: int = 6, seconds: int = 60) -> bool:
-    """Small per-session rate limiter for costly writes."""
+def check_rate_limit(action: str, limit: int = 6, seconds: int = 60, warn: bool = True) -> bool:
+    """Small per-session rate limiter for costly writes and rapid navigation."""
     key = f"rate_{action}"
     now = time.time()
     hits = [t for t in st.session_state.get(key, []) if now - t < seconds]
     if len(hits) >= limit:
-        st.warning(f"Slow down a little. Try again in {int(seconds - (now - hits[0]))}s.")
+        if warn:
+            st.warning(f"Slow down a little. Try again in {int(seconds - (now - hits[0]))}s.")
         st.session_state[key] = hits
         return False
     hits.append(now)
@@ -1701,6 +1830,7 @@ def create_notification(sb, user_id, actor_id, kind, title, body="", source_type
         }, returning=ReturnMethod.minimal).execute()
         session_cache_clear(f"notification_count_{user_id}")
         session_cache_clear(f"notifications_page_{user_id}")
+        session_cache_clear(f"sidebar_badges_{user_id}")
     except Exception:
         pass
 
@@ -1826,12 +1956,6 @@ def logo_small(size=32):
     return "🌙"
 
 def render_cube():
-    """
-    Render the signature 3D rotating cube for the login page.
-    Six faces, each representing a core LifeHub module.
-    Pure CSS — no canvas/WebGL, so it renders reliably inside
-    Streamlit's HTML sandbox with no extra dependencies.
-    """
     faces = [
         ("front",  "🤖", "AI Chat"),
         ("back",   "💬", "Live Chat"),
@@ -1841,14 +1965,56 @@ def render_cube():
         ("bottom", "👤", "Profile"),
     ]
     faces_html = "".join(
-        f'<div class="cube-face {cls}"><span class="ico">{ico}</span><span class="lbl">{lbl}</span></div>'
+        f'<div class="face {cls}"><span class="ico">{ico}</span><span class="lbl">{lbl}</span></div>'
         for cls, ico, lbl in faces
     )
-    st.markdown(f"""
-    <div class="cube-stage">
-      <div class="cube">{faces_html}</div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.components.v1.html(
+        f"""
+        <!DOCTYPE html>
+        <html><head><meta charset="utf-8"><style>
+        html, body {{
+          margin: 0; padding: 0; background: transparent; overflow: hidden;
+          font-family: Inter, sans-serif;
+        }}
+        .stage {{
+          width: 100%; height: 250px; display: flex; align-items: center; justify-content: center;
+          perspective: 1500px;
+        }}
+        .cube-auth {{
+          width: 150px; height: 150px; position: relative; transform-style: preserve-3d;
+          animation: spin3d 16s linear infinite;
+        }}
+        @keyframes spin3d {{
+          from {{ transform: rotateX(-22deg) rotateY(0deg); }}
+          to {{ transform: rotateX(-22deg) rotateY(360deg); }}
+        }}
+        .face {{
+          position: absolute; width: 150px; height: 150px;
+          background: linear-gradient(145deg, rgba(11,18,36,0.98), rgba(18,26,49,0.94));
+          border: 1px solid rgba(124,131,255,0.35);
+          border-radius: 20px; display: flex; flex-direction: column;
+          align-items: center; justify-content: center; gap: 8px;
+          box-shadow: 0 0 40px rgba(88,101,242,0.18), inset 0 0 0 1px rgba(255,255,255,0.05);
+          backface-visibility: hidden;
+        }}
+        .face .ico {{ font-size: 2.5rem; filter: drop-shadow(0 0 10px rgba(34,211,238,0.45)); }}
+        .face .lbl {{
+          font-size: 0.68rem; color: #a5f3fc; text-transform: uppercase;
+          letter-spacing: 0.14em; font-weight: 800;
+        }}
+        .face.front  {{ transform: translateZ(75px); }}
+        .face.back   {{ transform: rotateY(180deg) translateZ(75px); }}
+        .face.right  {{ transform: rotateY(90deg) translateZ(75px); }}
+        .face.left   {{ transform: rotateY(-90deg) translateZ(75px); }}
+        .face.top    {{ transform: rotateX(90deg) translateZ(75px); }}
+        .face.bottom {{ transform: rotateX(-90deg) translateZ(75px); }}
+        </style></head><body>
+        <div class="stage"><div class="cube-auth">{faces_html}</div></div>
+        </body></html>
+        """,
+        height=260,
+        scrolling=False,
+    )
 
 def inject_theme_css():
     theme = st.session_state.get("theme_mode", "Midnight")
@@ -2262,6 +2428,7 @@ def auth_page():
                     st.session_state.viewing_user = None
                     sb.table("profiles").update({"last_seen": datetime.now(timezone.utc).isoformat()}).eq("id", user["id"]).execute()
                     session_cache_clear("member_list_profiles")
+                    session_cache_clear("platform_stats")
                     save_auth_tokens_to_browser()
                     st.session_state["_auth_transition"] = True
                     st.session_state["_auth_busy"] = False
@@ -2379,6 +2546,7 @@ def view_user_profile(user_id):
     is_online = (user.get("last_seen") or "") > fa
     safe_username = escape_html(user.get("username", "user"))
     safe_bio = safe_multiline(user.get("bio") or "No bio yet.")
+    verified = verified_badge_html() if user.get("is_verified") else ""
     followers, following = follow_counts(sb, user["id"])
     post_total, habit_total, event_total = user_activity_counts(sb, user["id"])
     following_this_user = is_following(sb, st.session_state.user_id, user["id"]) if user["id"] != st.session_state.user_id else False
@@ -2397,9 +2565,11 @@ def view_user_profile(user_id):
       <div style="display:flex;align-items:center;gap:1.5rem;margin-bottom:1.5rem;">
         {avatar_html(user.get('username', 'user'), user.get('avatar_url'), 80, 'av-lg')}
         <div>
-          <h2 style="margin:0;font-family:'Space Grotesk',sans-serif;color:var(--primary);">@{safe_username}</h2>
+          <h2 style="margin:0;font-family:'Space Grotesk',sans-serif;color:var(--primary);display:flex;align-items:center;flex-wrap:wrap;gap:.2rem;">
+            @{safe_username}{verified}
+          </h2>
           <div style="color:var(--text-muted);font-size:.78rem;margin-top:.2rem;">
-            {'✓ Verified · ' if user.get('is_verified') else ''}{'Admin · ' if user.get('is_admin') else ''}{escape_html(user.get('profile_badge') or 'Member')}
+            {'Admin · ' if user.get('is_admin') else ''}{escape_html(user.get('profile_badge') or 'Member')}
           </div>
           <div style="color:{'var(--primary)' if is_online else 'var(--text-muted)'};font-size:.9rem;margin:.2rem 0;">
             {'<span class="online"></span>Online now' if is_online else '⚫ Offline'}
@@ -2452,6 +2622,8 @@ def view_user_profile(user_id):
                     create_notification(sb, user["id"], st.session_state.user_id, "follow", "New follower", f"@{st.session_state.username} followed you.", "user", st.session_state.user_id)
                 session_cache_clear(f"follow_counts_{user['id']}")
                 session_cache_clear(f"follow_counts_{st.session_state.user_id}")
+                session_cache_clear(f"profile_page_stats_{user['id']}")
+                session_cache_clear(f"profile_page_stats_{st.session_state.user_id}")
                 st.rerun()
         with c_msg:
             if st.button(f"Message @{user['username']}", key=f"profile_dm_{user['id']}", use_container_width=True):
@@ -2468,11 +2640,16 @@ def view_user_profile(user_id):
         st.code(profile_url, language="text")
     
     st.markdown("### 📝 User's Posts")
-    posts = sb.table("posts").select("*").eq("user_id", user["id"]).order("created_at", desc=True).limit(10).execute()
-    if not posts.data:
+    posts = session_cache_get(
+        f"view_profile_posts_{user['id']}",
+        20,
+        lambda: (sb.table("posts").select("id,content,created_at").eq("user_id", user["id"])
+                 .order("created_at", desc=True).limit(10).execute().data or [])
+    )
+    if not posts:
         st.markdown("<p style='color:var(--text-muted);'>No posts yet.</p>", unsafe_allow_html=True)
     else:
-        for p in posts.data:
+        for p in posts:
             st.markdown(f"""
             <div class="post">
               <p style="margin:0;color:var(--text-primary);">{linkify_mentions(p['content'])}</p>
@@ -2481,11 +2658,15 @@ def view_user_profile(user_id):
             """, unsafe_allow_html=True)
     
     st.markdown("### ✅ User's Habits")
-    habits = sb.table("habits").select("*").eq("user_id", user["id"]).limit(10).execute()
-    if not habits.data:
+    habits = session_cache_get(
+        f"view_profile_habits_{user['id']}",
+        20,
+        lambda: (sb.table("habits").select("name,emoji,frequency").eq("user_id", user["id"]).limit(10).execute().data or [])
+    )
+    if not habits:
         st.markdown("<p style='color:var(--text-muted);'>No habits yet.</p>", unsafe_allow_html=True)
     else:
-        for h in habits.data:
+        for h in habits:
             safe_habit = escape_html(h.get("name", "Habit"))
             safe_emoji = escape_html(h.get("emoji", "⭐"))
             st.markdown(f"""
@@ -2496,11 +2677,16 @@ def view_user_profile(user_id):
             """, unsafe_allow_html=True)
     
     st.markdown("### 📅 User's Events")
-    events = sb.table("events").select("*").eq("user_id", user["id"]).gte("event_date", datetime.now(timezone.utc).isoformat()).order("event_date").limit(10).execute()
-    if not events.data:
+    events = session_cache_get(
+        f"view_profile_events_{user['id']}",
+        20,
+        lambda: (sb.table("events").select("title,event_date").eq("user_id", user["id"])
+                 .gte("event_date", datetime.now(timezone.utc).isoformat()).order("event_date").limit(10).execute().data or [])
+    )
+    if not events:
         st.markdown("<p style='color:var(--text-muted);'>No upcoming events.</p>", unsafe_allow_html=True)
     else:
-        for ev in events.data:
+        for ev in events:
             dt = ev["event_date"][:16].replace("T"," ")
             safe_title = escape_html(ev.get("title", "Event"))
             st.markdown(f"""
@@ -3081,6 +3267,7 @@ def render_live_messages_fragment(sb, tid, sel, target_avatar):
         try:
             sb.table("messages").update({"is_read": True, "read_at": datetime.now(timezone.utc).isoformat()}).eq("sender_id", tid).eq("receiver_id", st.session_state.user_id).eq("is_read", False).execute()
             session_cache_clear(f"dm_unread_{st.session_state.user_id}")
+            session_cache_clear(f"sidebar_badges_{st.session_state.user_id}")
             st.session_state[read_key] = time.time()
         except Exception:
             pass
@@ -3258,6 +3445,7 @@ def live_chat_page():
             record_mentions(sb, nm.strip(), "direct_message", result.data[0]["id"], st.session_state.user_id)
             create_notification(sb, tid, st.session_state.user_id, "message", "New direct message", f"@{st.session_state.username} sent you a message.", "direct_message", result.data[0]["id"])
         session_cache_clear(f"dm_unread_{tid}")
+        session_cache_clear(f"sidebar_badges_{st.session_state.user_id}")
         session_cache_clear(f"user_sent_message_count_{st.session_state.user_id}")
         st.rerun()
 
@@ -3803,6 +3991,8 @@ def profile_page():
     initials = u["username"][:2].upper()
     safe_username = escape_html(u.get("username", "user"))
     safe_bio = safe_multiline(u.get("bio") or "No bio yet.")
+    verified = verified_badge_html() if u.get("is_verified") else ""
+    followers, following, post_count, habit_count, message_count = get_profile_page_stats(sb, st.session_state.user_id)
 
     avatar_url = u.get("avatar_url")
 
@@ -3816,7 +4006,9 @@ def profile_page():
     with col_inf:
         st.markdown(f"""
         <div style="padding-left:.5rem;">
-          <h2 style="margin:0;font-family:'Space Grotesk',sans-serif;background:linear-gradient(135deg,var(--primary),var(--secondary));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">@{safe_username}</h2>
+          <h2 style="margin:0;font-family:'Space Grotesk',sans-serif;background:linear-gradient(135deg,var(--primary),var(--secondary));-webkit-background-clip:text;-webkit-text-fill-color:transparent;display:flex;align-items:center;flex-wrap:wrap;gap:.2rem;">
+            @{safe_username}{verified}
+          </h2>
           <p style="color:var(--text-secondary);margin:.3rem 0 0;">{safe_bio}</p>
           <p style="color:var(--text-muted);font-size:.8rem;margin-top:.3rem;">Joined {u.get('created_at', '')[:10]}</p>
         </div>
@@ -3851,6 +4043,7 @@ def profile_page():
 
                 sb.table("profiles").update(update_data).eq("id", st.session_state.user_id).execute()
                 st.session_state.user.update(update_data)
+                session_cache_clear(f"profile_page_stats_{st.session_state.user_id}")
                 st.session_state.ep = False
                 st.success("✅ Profile updated!")
                 st.rerun()
@@ -3860,11 +4053,14 @@ def profile_page():
             st.rerun()
 
     st.markdown("---")
-    post_count, habit_count, _ = user_activity_counts(sb, st.session_state.user_id)
-    message_count = user_sent_message_count(sb, st.session_state.user_id)
-
-    cols = st.columns(3)
-    metrics = [(post_count, "Posts"), (habit_count, "Habits"), (message_count, "Messages")]
+    cols = st.columns(5)
+    metrics = [
+        (followers, "Followers"),
+        (following, "Following"),
+        (post_count, "Posts"),
+        (habit_count, "Habits"),
+        (message_count, "Messages"),
+    ]
     for col, (v, l) in zip(cols, metrics):
         col.markdown(f'<div class="metric"><div class="val">{v}</div><div class="lbl">{l}</div></div>', unsafe_allow_html=True)
 
@@ -3914,19 +4110,11 @@ def sidebar():
         </div>
         """, unsafe_allow_html=True)
 
-        # Unread counts for badge display
+        # Unread counts for badge display (single cached Supabase batch)
         try:
-            unread_dms = sum(get_unread_counts(sb, st.session_state.user_id).values())
+            unread_dms, unread_mentions, unread_notifications = get_sidebar_badges(sb, st.session_state.user_id)
         except Exception:
-            unread_dms = 0
-        try:
-            unread_mentions = get_unread_mention_count(sb, st.session_state.user_id)
-        except Exception:
-            unread_mentions = 0
-        try:
-            unread_notifications = get_unread_notification_count(sb, st.session_state.user_id)
-        except Exception:
-            unread_notifications = 0
+            unread_dms = unread_mentions = unread_notifications = 0
         is_admin = st.session_state.user.get("is_admin", False)
         total_alerts = unread_mentions + unread_notifications
         alert_html = (
@@ -3954,6 +4142,8 @@ def sidebar():
             full_label = f"{active_mark}{icon}  {label}{badge_text}"
             if st.button(full_label, key=f"nav_{key}", use_container_width=True):
                 if st.session_state.page == key:
+                    return
+                if not check_rate_limit("page_nav", limit=15, seconds=8, warn=False):
                     return
                 st.session_state.page = key
                 st.session_state.viewing_user = None
@@ -4232,6 +4422,8 @@ def main():
         clear_auth_tokens_from_browser()
         st.error("Your session expired or your profile could not be loaded. Please sign in again.")
         return
+
+    touch_last_seen(sb, st.session_state.user_id)
 
     try:
         profile_param = st.query_params.get("profile")
