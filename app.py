@@ -33,11 +33,6 @@ GROQ_BASE_URL = "https://api.groq.com/openai/v1"
 
 APP_NAME = get_config("APP_NAME", "LifeHub")
 APP_TAGLINE = "A professional workspace for community, focus, and productivity"
-CSS_VERSION = "creative-v13"
-PROFILE_COLS = (
-    "id,username,email,bio,avatar_url,is_admin,is_banned,is_verified,"
-    "profile_badge,created_at,last_seen,avatar_color,latitude,longitude"
-)
 MAP_LAT  = float(get_config("DEFAULT_MAP_LAT", 33.5731))
 MAP_LON  = float(get_config("DEFAULT_MAP_LON", -7.5898))
 MAP_ZOOM = int(get_config("DEFAULT_MAP_ZOOM", 12))
@@ -61,56 +56,34 @@ st.set_page_config(
 )
 
 # ============================================================
-# CSS — Creative Neon Studio Theme
+# CSS — Discord-Inspired Dark + Blurple Theme
 # ============================================================
 def inject_css():
-    if st.session_state.get("_css_v") == CSS_VERSION:
-        return
     st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700;800&family=Outfit:wght@600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700;800&display=swap');
 
 :root {
-  --neon-pink: #ff2d95;
-  --neon-purple: #b24bf3;
-  --neon-violet: #7c3aed;
-  --neon-blue: #3b82f6;
-  --neon-cyan: #06b6d4;
-  --neon-mint: #10f7a0;
-  --neon-lime: #a3e635;
-  --neon-orange: #fb923c;
-  --neon-gold: #fbbf24;
-  --neon-red: #f43f5e;
-  --primary: #a855f7;
-  --primary-light: #e879f9;
-  --primary-deep: #7c3aed;
-  --secondary: #22d3ee;
-  --accent: #ff2d95;
-  --accent-warm: #fb923c;
-  --bg0: #12082a;
-  --bg1: #1a1035;
-  --bg2: #221447;
-  --glass: rgba(34, 20, 71, 0.75);
-  --card: rgba(30, 18, 62, 0.88);
-  --card-hover: rgba(45, 28, 90, 0.95);
-  --border: rgba(232, 121, 249, 0.28);
-  --border-glow: rgba(168, 85, 247, 0.55);
-  --border-light: rgba(255, 255, 255, 0.08);
-  --text-primary: #fff7ff;
-  --text-secondary: #e9d5ff;
-  --text-muted: #c4b5fd;
-  --success: #34d399;
-  --danger: #fb7185;
-  --warning: #fcd34d;
-  --primary-glow: rgba(168, 85, 247, 0.55);
-  --cyan-glow: rgba(34, 211, 238, 0.45);
-  --pink-glow: rgba(255, 45, 149, 0.45);
+  --primary: #6366f1;
+  --primary-light: #818cf8;
+  --secondary: #06b6d4;
+  --accent: #f472b6;
+  --bg0: #020617;
+  --bg1: #0f172a;
+  --bg2: #1e293b;
+  --card: rgba(15, 23, 42, 0.88);
+  --card-hover: rgba(30, 41, 59, 0.92);
+  --border: rgba(148, 163, 184, 0.22);
+  --border-light: rgba(148, 163, 184, 0.1);
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --success: #10b981;
+  --danger: #ef4444;
+  --warning: #f59e0b;
   --radius: 16px;
   --radius-lg: 24px;
   --radius-xl: 32px;
-  --shadow-xl: 0 28px 80px rgba(0, 0, 0, 0.5);
-  --shadow-glow: 0 0 50px rgba(168, 85, 247, 0.25);
-  --rainbow: linear-gradient(135deg, #ff2d95, #b24bf3, #3b82f6, #06b6d4, #10f7a0, #fbbf24);
 }
 
 *, *::before, *::after {
@@ -118,58 +91,37 @@ def inject_css():
 }
 
 html, body, .stApp {
-  background:
-    radial-gradient(circle at 8% 15%, rgba(255, 45, 149, 0.35), transparent 32%),
-    radial-gradient(circle at 92% 12%, rgba(59, 130, 246, 0.32), transparent 34%),
-    radial-gradient(circle at 78% 88%, rgba(16, 247, 160, 0.18), transparent 38%),
-    radial-gradient(circle at 15% 85%, rgba(178, 75, 243, 0.28), transparent 36%),
-    radial-gradient(circle at 50% 50%, rgba(251, 146, 60, 0.08), transparent 55%),
-    linear-gradient(155deg, #0f0520 0%, #1a1035 35%, #12082a 70%, #0a0418 100%) !important;
+  background: radial-gradient(circle at 12% 8%, rgba(99, 102, 241, 0.3), transparent 32%), 
+              radial-gradient(circle at 88% 24%, rgba(6, 182, 212, 0.25), transparent 30%), 
+              linear-gradient(135deg, #020617 0%, #0f172a 45%, #020617 100%) !important;
   color: var(--text-primary) !important;
   font-family: 'Inter', sans-serif !important;
   scroll-behavior: smooth !important;
 }
 
+/* Animated background */
 .stApp::before {
   content: '';
   position: fixed;
   inset: 0;
-  background:
-    radial-gradient(circle at 25% 30%, rgba(255, 45, 149, 0.12), transparent 42%),
-    radial-gradient(circle at 75% 70%, rgba(6, 182, 212, 0.14), transparent 45%),
-    radial-gradient(circle at 50% 10%, rgba(251, 191, 36, 0.08), transparent 40%);
-  animation: auroraDrift 14s ease-in-out infinite alternate;
+  background: radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.08), transparent 40%),
+              radial-gradient(circle at 80% 80%, rgba(6, 182, 212, 0.06), transparent 45%);
+  animation: bgShift 12s ease-in-out infinite;
   pointer-events: none;
   z-index: 0;
 }
 
-.stApp::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  opacity: 0.25;
-  background-image:
-    radial-gradient(rgba(232, 121, 249, 0.35) 1px, transparent 1px),
-    radial-gradient(rgba(34, 211, 238, 0.2) 1px, transparent 1px);
-  background-size: 32px 32px, 48px 48px;
-  background-position: 0 0, 16px 16px;
-  mask-image: radial-gradient(ellipse at center, black 25%, transparent 88%);
+@keyframes bgShift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(10px, -10px) scale(1.02); }
 }
 
-@keyframes auroraDrift {
-  0% { transform: translate(0, 0) scale(1) rotate(0deg); filter: hue-rotate(0deg); }
-  50% { transform: translate(14px, -10px) scale(1.04) rotate(1deg); filter: hue-rotate(15deg); }
-  100% { transform: translate(-10px, 12px) scale(1.02) rotate(-1deg); filter: hue-rotate(-10deg); }
-}
-
+/* Sidebar styling */
 section[data-testid="stSidebar"] {
-  background: linear-gradient(180deg, rgba(18, 8, 42, 0.98), rgba(34, 20, 71, 0.96), rgba(15, 5, 32, 0.98)) !important;
-  border-right: 2px solid transparent !important;
-  border-image: linear-gradient(180deg, #ff2d95, #b24bf3, #3b82f6, #10f7a0) 1 !important;
-  box-shadow: 8px 0 50px rgba(168, 85, 247, 0.25) !important;
-  backdrop-filter: blur(24px);
+  background: linear-gradient(180deg, rgba(2, 6, 23, 0.98), rgba(15, 23, 42, 0.95)) !important;
+  border-right: 1px solid rgba(148, 163, 184, 0.15) !important;
+  box-shadow: 8px 0 40px rgba(0, 0, 0, 0.4) !important;
+  backdrop-filter: blur(20px);
 }
 
 /* Main container */
@@ -185,14 +137,14 @@ section[data-testid="stSidebar"] {
 .stSelectbox [data-baseweb="select"],
 .stDateInput input,
 .stTimeInput input {
-  background: rgba(34, 20, 71, 0.85) !important;
+  background: rgba(15, 23, 42, 0.92) !important;
   color: var(--text-primary) !important;
-  border: 2px solid rgba(168, 85, 247, 0.35) !important;
+  border: 1px solid var(--border) !important;
   border-radius: var(--radius) !important;
   font-family: 'Inter', sans-serif !important;
   transition: all 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28) !important;
   padding: 0.85rem 1.1rem !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 4px 20px rgba(124, 58, 237, 0.12) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
 }
 
 .stTextInput > div > div > input:focus,
@@ -200,190 +152,153 @@ section[data-testid="stSidebar"] {
 .stSelectbox [data-baseweb="select"]:focus-within,
 .stDateInput input:focus,
 .stTimeInput input:focus {
-  border-color: var(--neon-pink) !important;
-  box-shadow: 0 0 0 4px rgba(255, 45, 149, 0.2), 0 0 40px rgba(168, 85, 247, 0.35) !important;
-  background: rgba(45, 28, 90, 0.95) !important;
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 6px rgba(99, 102, 241, 0.15), 0 0 40px rgba(99, 102, 241, 0.18) !important;
+  background: rgba(15, 23, 42, 0.98) !important;
   transform: translateY(-2px);
 }
 
-/* ── Rainbow animated main buttons ── */
-.stButton > button,
-.stFormSubmitButton > button,
-button[kind="primaryFormSubmit"] {
+/* Button styling - Professional Upgrade */
+.stButton > button {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(135deg, #ff2d95, #b24bf3, #3b82f6, #06b6d4, #10f7a0) !important;
-  background-size: 300% 300% !important;
-  animation: rainbowShift 5s ease infinite !important;
-  color: #fff !important;
-  border: 2px solid rgba(255, 255, 255, 0.25) !important;
-  border-radius: 999px !important;
-  font-family: 'Outfit', 'Space Grotesk', sans-serif !important;
-  font-weight: 800 !important;
-  letter-spacing: 0.04em !important;
-  text-transform: none !important;
-  transition: transform 0.25s ease, box-shadow 0.25s ease !important;
-  box-shadow: 0 8px 32px rgba(255, 45, 149, 0.4), 0 4px 16px rgba(59, 130, 246, 0.3), inset 0 1px 0 rgba(255,255,255,.35) !important;
-  padding: 0.75rem 1.75rem !important;
+  background: linear-gradient(135deg, var(--primary), var(--secondary)) !important;
+  color: white !important;
+  border: none !important;
+  border-radius: var(--radius) !important;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.02em !important;
+  transition: all 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28) !important;
+  box-shadow: 0 12px 38px rgba(99, 102, 241, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+  padding: 0.8rem 2rem !important;
   min-height: 48px !important;
-  text-shadow: 0 1px 2px rgba(0,0,0,.25);
 }
 
-@keyframes rainbowShift {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-}
-
-.stButton > button::after {
+.stButton > button::before {
   content: '';
   position: absolute;
-  inset: 0;
-  background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,.35) 50%, transparent 60%);
-  transform: translateX(-100%);
-  transition: transform 0.5s ease;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  transition: left 0.6s ease-in-out;
 }
 
-.stButton > button:hover::after {
-  transform: translateX(100%);
+.stButton > button:hover::before {
+  left: 100%;
 }
 
-.stButton > button:hover,
-.stFormSubmitButton > button:hover {
-  transform: translateY(-4px) scale(1.03) !important;
-  box-shadow: 0 16px 48px rgba(255, 45, 149, 0.5), 0 8px 24px rgba(6, 182, 212, 0.4) !important;
-  border-color: rgba(255, 255, 255, 0.45) !important;
+.stButton > button:hover {
+  transform: translateY(-4px) scale(1.02) !important;
+  box-shadow: 0 20px 55px rgba(99, 102, 241, 0.4), 0 0 35px rgba(6, 182, 212, 0.25) !important;
 }
 
 .stButton > button:active {
-  transform: translateY(0) scale(0.98) !important;
+  transform: translateY(0) scale(0.97) !important;
+  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.25) !important;
+  transition-duration: 0.1s;
 }
 
-/* ── Colorful sidebar nav buttons ── */
+/* Sidebar buttons */
 section[data-testid="stSidebar"] .stButton > button {
   justify-content: flex-start !important;
   text-align: left !important;
-  border-radius: 14px !important;
-  animation: none !important;
-  background-size: 100% 100% !important;
-  font-weight: 700 !important;
-  border: 1px solid rgba(255,255,255,.12) !important;
-  box-shadow: 0 4px 16px rgba(0,0,0,.25) !important;
+  background: rgba(15, 23, 42, 0.78) !important;
+  border: 1px solid rgba(148, 163, 184, 0.15) !important;
+  box-shadow: none !important;
 }
-section[data-testid="stSidebar"] .stButton:nth-of-type(1) > button { background: linear-gradient(135deg, #7c3aed, #c026d3) !important; }
-section[data-testid="stSidebar"] .stButton:nth-of-type(2) > button { background: linear-gradient(135deg, #ec4899, #f97316) !important; }
-section[data-testid="stSidebar"] .stButton:nth-of-type(3) > button { background: linear-gradient(135deg, #3b82f6, #06b6d4) !important; }
-section[data-testid="stSidebar"] .stButton:nth-of-type(4) > button { background: linear-gradient(135deg, #8b5cf6, #6366f1) !important; }
-section[data-testid="stSidebar"] .stButton:nth-of-type(5) > button { background: linear-gradient(135deg, #10b981, #14b8a6) !important; }
-section[data-testid="stSidebar"] .stButton:nth-of-type(6) > button { background: linear-gradient(135deg, #f59e0b, #ef4444) !important; }
-section[data-testid="stSidebar"] .stButton:nth-of-type(7) > button { background: linear-gradient(135deg, #06b6d4, #3b82f6) !important; }
-section[data-testid="stSidebar"] .stButton:nth-of-type(8) > button { background: linear-gradient(135deg, #a3e635, #22c55e) !important; }
-section[data-testid="stSidebar"] .stButton:nth-of-type(9) > button { background: linear-gradient(135deg, #f472b6, #e879f9) !important; }
-section[data-testid="stSidebar"] .stButton:nth-of-type(10) > button { background: linear-gradient(135deg, #64748b, #475569) !important; }
-section[data-testid="stSidebar"] .stButton:last-of-type > button {
-  background: linear-gradient(135deg, #f43f5e, #be123c) !important;
-  margin-top: .5rem;
-}
+
 section[data-testid="stSidebar"] .stButton > button:hover {
-  transform: translateX(8px) scale(1.02) !important;
-  box-shadow: 0 8px 28px rgba(255,255,255,.15) !important;
-  filter: brightness(1.12);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.24), rgba(6, 182, 212, 0.18)) !important;
+  border-color: rgba(129, 140, 248, 0.4) !important;
+  transform: translateX(6px) !important;
 }
 
 /* Tabs */
 .stTabs [data-baseweb="tab-list"] {
-  background: rgba(34, 20, 71, 0.85) !important;
-  border: 2px solid rgba(168, 85, 247, 0.35) !important;
+  background: rgba(15, 23, 42, 0.78) !important;
+  border: 1px solid rgba(148, 163, 184, 0.18) !important;
   border-radius: var(--radius-lg) !important;
   padding: 0.5rem !important;
-  gap: 0.5rem !important;
+  gap: 0.6rem !important;
 }
 
 .stTabs [data-baseweb="tab"] {
   background: transparent !important;
   color: var(--text-muted) !important;
   border-radius: 12px !important;
-  font-weight: 700 !important;
-  transition: all 0.3s ease !important;
-  padding: 0.65rem 1.2rem !important;
+  font-weight: 600 !important;
+  transition: all 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28) !important;
+  padding: 0.7rem 1.3rem !important;
 }
 
 .stTabs [aria-selected="true"] {
-  background: linear-gradient(135deg, #ff2d95, #b24bf3, #3b82f6) !important;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.28), rgba(6, 182, 212, 0.22)) !important;
   color: white !important;
-  box-shadow: 0 6px 24px rgba(255, 45, 149, 0.45) !important;
+  box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.3) inset, 0 8px 25px rgba(99, 102, 241, 0.2) !important;
   transform: translateY(-2px);
 }
 
+/* Cards */
 .card, .post, .metric, .ev-card, .user-profile-card,
 .member-panel, div[data-testid="stForm"] {
-  background: linear-gradient(145deg, rgba(34, 20, 71, 0.92), rgba(45, 28, 90, 0.78)) !important;
-  border: 2px solid transparent !important;
-  background-clip: padding-box !important;
+  background: linear-gradient(145deg, var(--card), rgba(30, 41, 59, 0.72)) !important;
+  border: 1px solid var(--border) !important;
   border-radius: var(--radius-xl) !important;
-  box-shadow: var(--shadow-xl), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
-  backdrop-filter: blur(20px);
+  box-shadow: 0 20px 65px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+  backdrop-filter: blur(18px);
   transition: all 0.35s cubic-bezier(0.18, 0.89, 0.32, 1.28) !important;
+  transform-style: preserve-3d;
   position: relative;
-  overflow: hidden;
-}
-
-.card::before, .post::before, .metric::before, .ev-card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding: 2px;
-  background: linear-gradient(135deg, #ff2d95, #b24bf3, #3b82f6, #10f7a0, #fbbf24);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
-  opacity: 0.65;
 }
 
 .card:hover, .post:hover, .metric:hover, .ev-card:hover,
-.user-profile-card:hover, .member-panel:hover {
-  transform: translateY(-6px) scale(1.01) !important;
-  box-shadow: 0 32px 80px rgba(168, 85, 247, 0.35), 0 0 40px rgba(255, 45, 149, 0.15) !important;
+.user-profile-card:hover, .member-panel:hover, div[data-testid="stForm"]:hover {
+  transform: translateY(-7px) scale(1.015) !important;
+  border-color: rgba(99, 102, 241, 0.45) !important;
+  box-shadow: 0 30px 95px rgba(0, 0, 0, 0.52), 0 0 45px rgba(99, 102, 241, 0.18) !important;
 }
 
+/* Metrics */
 .metric {
-  padding: 1.5rem 1.6rem !important;
+  padding: 1.6rem 1.8rem !important;
   text-align: center;
 }
 
 .metric .val {
-  font-size: 2.5rem;
+  font-size: 2.6rem;
   font-weight: 900;
-  font-family: 'Outfit', 'Space Grotesk', sans-serif;
-  background: linear-gradient(135deg, #ff2d95, #e879f9, #60a5fa, #34d399, #fbbf24);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  filter: drop-shadow(0 0 12px rgba(255,45,149,.3));
+  color: var(--text-primary);
+  font-family: 'Space Grotesk', sans-serif;
+  transition: transform 0.3s ease;
+}
+
+.metric:hover .val {
+  transform: scale(1.05);
 }
 
 .metric .lbl {
-  font-size: 0.75rem;
-  color: var(--neon-cyan);
+  font-size: 0.82rem;
+  color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.16em;
-  margin-top: 0.45rem;
-  font-weight: 700;
+  letter-spacing: 0.14em;
+  margin-top: 0.5rem;
 }
 
+/* Section header */
 .sh {
   width: 100%;
-  min-height: 130px;
+  min-height: 120px;
   margin: 0 0 1.7rem !important;
   padding: 1.6rem 2rem;
   border-radius: var(--radius-xl);
-  border: 2px solid rgba(232, 121, 249, 0.4);
-  background:
-    linear-gradient(135deg, rgba(34, 20, 71, 0.95), rgba(59, 20, 100, 0.85)),
-    radial-gradient(circle at 0% 0%, rgba(255, 45, 149, 0.25), transparent 45%),
-    radial-gradient(circle at 100% 100%, rgba(6, 182, 212, 0.2), transparent 45%);
-  box-shadow: 0 24px 70px rgba(124, 58, 237, 0.35), inset 0 1px 0 rgba(255,255,255,.1);
+  border: 1px solid rgba(129, 140, 248, 0.25);
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(8, 47, 73, 0.7)),
+              radial-gradient(circle at 10% 0%, rgba(6, 182, 212, 0.25), transparent 40%),
+              radial-gradient(circle at 90% 40%, rgba(99, 102, 241, 0.28), transparent 38%);
+  box-shadow: 0 30px 85px rgba(2, 6, 23, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.06);
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 1.3rem;
@@ -391,64 +306,71 @@ section[data-testid="stSidebar"] .stButton > button:hover {
 }
 
 .sh-icon {
-  width: 76px;
-  height: 76px;
+  width: 72px;
+  height: 72px;
   border-radius: 22px;
   display: grid;
   place-items: center;
   color: white;
-  font-size: 2.1rem;
-  background: linear-gradient(135deg, #ff2d95, #b24bf3, #3b82f6);
-  box-shadow: 0 12px 40px rgba(255, 45, 149, 0.45), inset 0 2px 0 rgba(255,255,255,.3);
-  animation: iconPulse 3s ease-in-out infinite;
+  font-size: 2rem;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.98), rgba(6, 182, 212, 0.9));
+  box-shadow: 0 20px 45px rgba(6, 182, 212, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  transition: all 0.3s ease;
 }
 
-@keyframes iconPulse {
-  0%, 100% { box-shadow: 0 12px 40px rgba(255, 45, 149, 0.45); transform: scale(1); }
-  50% { box-shadow: 0 16px 50px rgba(59, 130, 246, 0.5); transform: scale(1.05); }
+.sh:hover .sh-icon {
+  transform: rotate(8deg) scale(1.1);
 }
 
 .sh-title {
   margin: 0;
-  font-family: 'Outfit', 'Space Grotesk', sans-serif;
-  font-size: 2.1rem;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 2rem;
   font-weight: 900;
-  background: linear-gradient(90deg, #fff, #e879f9, #67e8f9);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  letter-spacing: -0.03em;
+  color: var(--text-primary);
+  letter-spacing: -0.04em;
 }
 
 .sh-sub {
-  margin-top: 0.4rem;
-  color: #ddd6fe;
-  font-size: 0.95rem;
+  margin-top: 0.45rem;
+  color: var(--text-secondary);
+  font-size: 0.98rem;
   line-height: 1.55;
 }
 
+/* Chat bubbles */
 .bme {
-  background: linear-gradient(135deg, #ff2d95, #b24bf3, #7c3aed) !important;
+  background: linear-gradient(135deg, var(--primary), #4f46e5) !important;
   color: white !important;
-  padding: 1rem 1.4rem;
-  border-radius: 22px 22px 6px 22px;
-  margin: 0.65rem 0;
+  padding: 1.1rem 1.5rem;
+  border-radius: 24px 24px 6px 24px;
+  margin: 0.7rem 0;
   max-width: 75%;
   margin-left: auto;
-  box-shadow: 0 10px 36px rgba(255, 45, 149, 0.45) !important;
-  border: 1px solid rgba(255,255,255,.15);
+  box-shadow: 0 14px 40px rgba(99, 102, 241, 0.35) !important;
+  transition: transform 0.25s ease;
+}
+
+.bme:hover {
+  transform: translateX(-4px) scale(1.01);
 }
 
 .bother {
-  background: linear-gradient(145deg, rgba(34, 20, 71, 0.95), rgba(6, 78, 99, 0.4)) !important;
+  background: rgba(15, 23, 42, 0.96) !important;
   color: var(--text-primary) !important;
-  padding: 1rem 1.4rem;
-  border-radius: 22px 22px 22px 6px;
-  margin: 0.65rem 0;
+  padding: 1.1rem 1.5rem;
+  border-radius: 24px 24px 24px 6px;
+  margin: 0.7rem 0;
   max-width: 75%;
-  border: 2px solid rgba(34, 211, 238, 0.35) !important;
-  box-shadow: 0 8px 28px rgba(6, 182, 212, 0.2);
+  border: 1px solid rgba(148, 163, 184, 0.22) !important;
+  transition: transform 0.25s ease;
 }
 
+.bother:hover {
+  transform: translateX(4px) scale(1.01);
+}
+
+/* Avatar */
 .av, .member-row .av-sm {
   width: 48px;
   height: 48px;
@@ -456,57 +378,80 @@ section[data-testid="stSidebar"] .stButton > button:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   font-weight: 800;
   color: white;
-  background: linear-gradient(135deg, #ff2d95, #b24bf3, #3b82f6);
-  box-shadow: 0 0 20px rgba(255, 45, 149, 0.4), 0 0 0 3px rgba(255,255,255,.1);
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  box-shadow: 0 12px 34px rgba(99, 102, 241, 0.3);
   flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+
+.av:hover, .member-row .av-sm:hover {
+  transform: scale(1.1) rotate(5deg);
+  box-shadow: 0 16px 40px rgba(99, 102, 241, 0.4);
+}
+
+.av-lg {
+  width: 110px;
+  height: 110px;
+  font-size: 2.8rem;
+}
+
+/* Branding */
+.brand {
+  padding: 1.5rem 1.2rem 1.2rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
 }
 
 .brand-name {
-  font-family: 'Outfit', 'Space Grotesk', sans-serif;
-  font-size: 1.75rem;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.7rem;
   font-weight: 900;
-  background: linear-gradient(135deg, #fff, #ff2d95, #b24bf3, #06b6d4, #10f7a0);
+  background: linear-gradient(135deg, #f8fafc, #818cf8 45%, #06b6d4);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  animation: heroPulse 5s ease-in-out infinite;
+  transition: transform 0.2s ease;
 }
 
+.brand:hover .brand-name {
+  transform: scale(1.02);
+}
+
+/* Hero */
 .hero-title {
-  font-size: 3.5rem;
+  font-size: 3.8rem;
   font-weight: 900;
-  font-family: 'Outfit', 'Space Grotesk', sans-serif;
-  background: linear-gradient(135deg, #ff2d95, #e879f9, #60a5fa, #34d399, #fbbf24, #ff2d95);
-  background-size: 200% auto;
+  font-family: 'Space Grotesk', sans-serif;
+  background: linear-gradient(135deg, #6366f1, #06b6d4, #f472b6);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  margin: 0.5rem 0;
-  line-height: 1.05;
-  animation: heroShine 4s linear infinite;
-}
-
-@keyframes heroShine {
-  0% { background-position: 0% center; filter: drop-shadow(0 0 20px rgba(255,45,149,.4)); }
-  50% { filter: drop-shadow(0 0 30px rgba(59,130,246,.5)); }
-  100% { background-position: 200% center; filter: drop-shadow(0 0 20px rgba(16,247,160,.4)); }
+  margin: 0.6rem 0;
+  line-height: 1.03;
+  animation: heroPulse 6s ease-in-out infinite;
 }
 
 @keyframes heroPulse {
-  0%, 100% { filter: drop-shadow(0 0 20px rgba(255,45,149,.35)); }
-  50% { filter: drop-shadow(0 0 35px rgba(6,182,212,.45)); }
+  0%, 100% { filter: drop-shadow(0 0 25px rgba(99,102,241,0.25)); }
+  50% { filter: drop-shadow(0 0 40px rgba(6,182,212,0.35)); }
 }
 
+/* Badge */
 .badge {
   display: inline-block;
-  background: linear-gradient(135deg, rgba(255,45,149,.25), rgba(59,130,246,.25));
-  color: #fce7f3;
-  border: 1px solid rgba(232, 121, 249, 0.5);
-  padding: 0.25rem 0.85rem;
+  background: rgba(6, 182, 212, 0.2);
+  color: #a5f3fc;
+  border: 1px solid rgba(6, 182, 212, 0.35);
+  padding: 0.2rem 0.8rem;
   border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: 800;
+  font-size: 0.75rem;
+  font-weight: 700;
+  transition: all 0.25s ease;
+}
+
+.badge:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(6, 182, 212, 0.25);
 }
 
 /* Scrollbar */
@@ -602,42 +547,56 @@ button[data-testid="stSidebarCollapsedControl"]:hover {
   position: absolute;
   width: 150px;
   height: 150px;
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.94));
+  border: 1px solid rgba(129, 140, 248, 0.35);
   border-radius: 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 9px;
-  border: 2px solid rgba(255,255,255,.2);
-  box-shadow: 0 0 40px rgba(168, 85, 247, 0.35), inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 50px rgba(99, 102, 241, 0.18), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  transition: all 0.3s ease;
 }
-.cube-face .ico { font-size: 2.6rem; filter: drop-shadow(0 2px 8px rgba(0,0,0,.3)); }
-.cube-face .lbl { font-size: 0.72rem; color: #fff; text-transform: uppercase; letter-spacing: 0.14em; font-weight: 800; text-shadow: 0 1px 4px rgba(0,0,0,.3); }
-.cube-face.front  { transform: translateZ(75px); background: linear-gradient(145deg, #ff2d95, #b24bf3); }
-.cube-face.back   { transform: rotateY(180deg) translateZ(75px); background: linear-gradient(145deg, #3b82f6, #06b6d4); }
-.cube-face.right  { transform: rotateY(90deg) translateZ(75px); background: linear-gradient(145deg, #10b981, #14b8a6); }
-.cube-face.left   { transform: rotateY(-90deg) translateZ(75px); background: linear-gradient(145deg, #f59e0b, #ef4444); }
-.cube-face.top    { transform: rotateX(90deg) translateZ(75px); background: linear-gradient(145deg, #a855f7, #6366f1); }
-.cube-face.bottom { transform: rotateX(-90deg) translateZ(75px); background: linear-gradient(145deg, #f472b6, #fb923c); }
+
+.cube-face .ico {
+  font-size: 2.6rem;
+  filter: drop-shadow(0 0 12px rgba(6, 182, 212, 0.6));
+}
+
+.cube-face .lbl {
+  font-size: 0.74rem;
+  color: #a5f3fc;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-weight: 700;
+}
+
+.cube-face.front  { transform: translateZ(75px); }
+.cube-face.back   { transform: rotateY(180deg) translateZ(75px); }
+.cube-face.right  { transform: rotateY(90deg) translateZ(75px); }
+.cube-face.left   { transform: rotateY(-90deg) translateZ(75px); }
+.cube-face.top    { transform: rotateX(90deg) translateZ(75px); }
+.cube-face.bottom { transform: rotateX(-90deg) translateZ(75px); }
 
 /* Radio group */
 div[role="radiogroup"] {
-  background: rgba(34, 20, 71, 0.85);
-  border: 2px solid rgba(168, 85, 247, 0.35);
-  border-radius: 999px;
-  padding: 0.35rem;
+  background: rgba(15, 23, 42, 0.78);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 20px;
+  padding: 0.6rem;
   margin-bottom: 1rem;
 }
 
-div[role="radiogroup"] label:hover {
-  background: rgba(255, 45, 149, 0.2);
+div[role="radiogroup"] label {
+  border-radius: 14px;
+  padding: 0.6rem 1rem;
+  transition: all 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
 }
 
-div[role="radiogroup"] label[data-checked="true"],
-div[role="radiogroup"] label:has(input:checked) {
-  background: linear-gradient(135deg, #ff2d95, #b24bf3) !important;
-  color: white !important;
-  border-radius: 999px;
+div[role="radiogroup"] label:hover {
+  background: rgba(99, 102, 241, 0.22);
+  transform: translateY(-2px);
 }
 
 /* Expander */
@@ -653,15 +612,20 @@ div[data-testid="stExpander"]:hover {
   transform: translateY(-2px);
 }
 
-.post { cursor: default; padding-left: 1.5rem !important; }
-.post::after {
+/* Post border */
+.post {
+  cursor: default;
+}
+
+.post::before {
+  width: 4px;
+  background: linear-gradient(180deg, var(--primary), var(--secondary));
+  border-radius: 4px 0 0 4px;
+  left: 0;
+  top: 0;
+  bottom: 0;
   content: '';
   position: absolute;
-  left: 0; top: 12%; bottom: 12%;
-  width: 5px;
-  background: linear-gradient(180deg, #ff2d95, #b24bf3, #3b82f6, #10f7a0);
-  border-radius: 99px;
-  box-shadow: 0 0 16px rgba(255, 45, 149, 0.5);
 }
 
 /* Hide Streamlit default elements */
@@ -692,146 +656,21 @@ div[data-testid="stExpander"]:hover {
     font-size: 2.4rem;
   }
 }
-
-/* ── Creative component layer ── */
-.sh { position: relative; overflow: hidden; }
-.sh-glow {
-  position: absolute; top: -60%; right: -10%; width: 260px; height: 260px;
-  background: radial-gradient(circle, rgba(255,45,149,.35), rgba(59,130,246,.2), transparent 70%);
-  pointer-events: none;
-}
-.brand-chip {
-  display: flex; align-items: center; gap: .85rem; padding: 1rem 1.1rem;
-  background: linear-gradient(135deg, rgba(255,45,149,.15), rgba(59,130,246,.12), rgba(16,247,160,.08));
-  border: 2px solid rgba(232, 121, 249, 0.45); border-radius: var(--radius-lg);
-  box-shadow: 0 8px 32px rgba(168, 85, 247, 0.3); margin-bottom: .5rem;
-}
-.sb-eyebrow {
-  font-size: .65rem; text-transform: uppercase; letter-spacing: .18em;
-  color: #e879f9; margin: 1rem 0 .4rem; font-weight: 800;
-}
-.sb-stat .n {
-  background: linear-gradient(135deg, #ff2d95, #60a5fa);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 900;
-}
-.auth-copy {
-  color: #fce7f3; border-left: 4px solid #ff2d95;
-  background: linear-gradient(90deg, rgba(255,45,149,.15), transparent);
-}
-.auth-product-card {
-  background: linear-gradient(160deg, rgba(255,45,149,.12), rgba(59,130,246,.1), rgba(16,247,160,.08));
-  border: 2px solid rgba(232, 121, 249, 0.4);
-}
-.stat-pill:nth-child(1) { background: linear-gradient(145deg, rgba(255,45,149,.2), rgba(178,75,243,.15)); border-color: rgba(255,45,149,.4); }
-.stat-pill:nth-child(2) { background: linear-gradient(145deg, rgba(59,130,246,.2), rgba(6,182,212,.15)); border-color: rgba(59,130,246,.4); }
-.stat-pill:nth-child(3) { background: linear-gradient(145deg, rgba(16,247,160,.15), rgba(163,230,53,.12)); border-color: rgba(16,247,160,.35); }
-.stat-pill .num {
-  font-size: 1.75rem; font-weight: 900; font-family: 'Outfit', sans-serif;
-  background: linear-gradient(135deg, #fff, #e879f9, #67e8f9);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-}
-.stat-pill .cap { color: #c4b5fd; font-weight: 700; }
-.stat-pill:hover { transform: translateY(-4px) scale(1.03); box-shadow: 0 12px 36px rgba(255,45,149,.25); }
-.profile-stats .metric:nth-child(1) .val { background: linear-gradient(135deg, #ff2d95, #e879f9); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-.profile-stats .metric:nth-child(2) .val { background: linear-gradient(135deg, #60a5fa, #06b6d4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-.profile-stats .metric:nth-child(3) .val { background: linear-gradient(135deg, #a3e635, #10b981); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-.profile-stats .metric:nth-child(4) .val { background: linear-gradient(135deg, #fbbf24, #fb923c); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-.profile-stats .metric:nth-child(5) .val { background: linear-gradient(135deg, #f472b6, #c026d3); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-.av-lg { width: 110px; height: 110px; font-size: 2.8rem; }
-.brand { padding: 1.5rem 1.2rem 1.2rem; border-bottom: 1px solid rgba(232, 121, 249, 0.2); }
-.stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .7rem; }
-.stat-pill {
-  text-align: center; padding: 1rem .75rem; border: 2px solid; border-radius: var(--radius-lg);
-  transition: transform .25s ease, box-shadow .25s ease;
-}
-.profile-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: .6rem; margin: 1.1rem 0; }
-.user-profile-card {
-  padding: 1.75rem; border-radius: var(--radius-xl);
-  background: linear-gradient(145deg, rgba(34,20,71,.94), rgba(59,20,100,.85));
-  border: 2px solid rgba(232, 121, 249, 0.4); box-shadow: var(--shadow-xl);
-}
-.verified-badge {
-  background: linear-gradient(135deg, #0095f6, #06b6d4);
-  box-shadow: 0 0 14px rgba(6, 182, 212, 0.6);
-}
-.online { background: #10f7a0; box-shadow: 0 0 12px #10f7a0; }
-.status-badge.on { background: #10f7a0; box-shadow: 0 0 12px #10f7a0; }
-.empty-state {
-  border: 2px dashed rgba(232, 121, 249, 0.45);
-  background: linear-gradient(145deg, rgba(255,45,149,.08), rgba(59,130,246,.08));
-}
-section[data-testid="stSidebar"] [data-testid="stVerticalBlockBorderWrapper"] {
-  background: linear-gradient(135deg, rgba(255,45,149,.08), rgba(59,130,246,.08)) !important;
-  border: 2px solid rgba(168, 85, 247, 0.35) !important;
-}
-.sb-stat {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: .45rem 0; color: var(--text-secondary); font-size: .8rem;
-  border-bottom: 1px solid rgba(232, 121, 249, 0.15);
-}
-.auth-hero { text-align: center; padding: .5rem 0 1.5rem; animation: fadeUp .6s ease both; }
-.auth-panel {
-  background: linear-gradient(145deg, rgba(34,20,71,.96), rgba(59,20,100,.88));
-  border: 2px solid rgba(232, 121, 249, 0.4); border-radius: var(--radius-lg); padding: 1.35rem 1.5rem;
-}
-.verified-badge {
-  display: inline-flex; width: 1.1rem; height: 1.1rem; margin-left: .25rem;
-  border-radius: 50%; align-items: center; justify-content: center; vertical-align: middle;
-}
-.status-badge { position: absolute; bottom: 2px; right: 2px; width: 11px; height: 11px; border-radius: 50%; border: 2px solid var(--bg1); }
-.status-badge.off { background: var(--text-muted); }
-.av-wrap { position: relative; display: inline-block; }
-.online { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }
-.msg-group-name { color: #e879f9; font-weight: 800; }
-.member-row:hover { background: rgba(255,45,149,.1); border-color: rgba(232,121,249,.3); }
-.empty-state .ico { font-size: 3rem; margin-bottom: .75rem; filter: drop-shadow(0 0 24px rgba(255,45,149,.5)); }
-@keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
-::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #ff2d95, #b24bf3, #3b82f6, #10f7a0);
-}
-@media (max-width: 900px) { .profile-stats { grid-template-columns: repeat(3, 1fr); } }
 </style>
 """, unsafe_allow_html=True)
-    st.session_state["_css_v"] = CSS_VERSION
 
 
 def inject_theme_css():
-    theme = st.session_state.get("theme_mode", "Neon")
+    theme = st.session_state.get("theme_mode", "Midnight")
     if theme == "Ocean":
         st.markdown("""
         <style>
-        html, body, .stApp {
-          background:
-            radial-gradient(circle at 10% 20%, rgba(6, 182, 212, 0.4), transparent 35%),
-            radial-gradient(circle at 90% 80%, rgba(59, 130, 246, 0.35), transparent 38%),
-            linear-gradient(155deg, #042f2e, #0c4a6e, #082f49) !important;
-        }
-        section[data-testid="stSidebar"] {
-          background: linear-gradient(180deg, #042f2e, #0e7490, #042f2e) !important;
-        }
-        </style>
-        """, unsafe_allow_html=True)
-    elif theme == "Sunset":
-        st.markdown("""
-        <style>
-        html, body, .stApp {
-          background:
-            radial-gradient(circle at 15% 20%, rgba(251, 146, 60, 0.4), transparent 35%),
-            radial-gradient(circle at 85% 75%, rgba(244, 63, 94, 0.35), transparent 38%),
-            radial-gradient(circle at 50% 50%, rgba(168, 85, 247, 0.15), transparent 50%),
-            linear-gradient(155deg, #1a0a2e, #4a1942, #2d1b4e) !important;
-        }
-        section[data-testid="stSidebar"] {
-          background: linear-gradient(180deg, #2d1b4e, #4a1942, #1a0a2e) !important;
-        }
-        </style>
-        """, unsafe_allow_html=True)
-    else:
-        st.markdown("""
-        <style>
-        :root {
-          --primary: #7c83ff; --primary-light: #a5b4fc; --primary-deep: #5865f2;
-          --primary-glow: rgba(88,101,242,.4);
+        :root{
+          --primary: #06b6d4;
+          --primary-light: #22d3ee;
+          --bg0: #030712;
+          --bg1: #0f172a;
+          --card: rgba(15, 23, 42, 0.88);
         }
         </style>
         """, unsafe_allow_html=True)
@@ -931,7 +770,7 @@ def restore_login_from_saved_tokens() -> str:
         auth_user = getattr(user_res, "user", None)
         if not auth_user:
             return "invalid"
-        prof = sb.table("profiles").select(PROFILE_COLS).eq("id", auth_user.id).limit(1).execute()
+        prof = sb.table("profiles").select("*").eq("id", auth_user.id).limit(1).execute()
         if not prof.data:
             return "invalid"
         user = prof.data[0]
@@ -948,7 +787,7 @@ def restore_login_from_saved_tokens() -> str:
 def get_user_profile(user_id):
     def load():
         sb = get_sb()
-        result = sb.table("profiles").select(PROFILE_COLS).eq("id", user_id).execute()
+        result = sb.table("profiles").select("*").eq("id", user_id).execute()
         return result.data[0] if result.data else None
     return session_cache_get(f"profile_{user_id}", 30, load)
 
@@ -959,7 +798,7 @@ def get_user_by_username(username):
     def load():
         try:
             sb = get_sb()
-            result = sb.table("profiles").select(PROFILE_COLS).eq("username", username).limit(1).execute()
+            result = sb.table("profiles").select("*").eq("username", username).limit(1).execute()
             return result.data[0] if result.data else None
         except Exception:
             return None
@@ -1026,7 +865,6 @@ def sh_header(icon, title):
     st.markdown(
         f"""
         <section class="sh">
-          <div class="sh-glow"></div>
           <div class="sh-icon">{icon}</div>
           <div>
             <h1 class="sh-title">{escape_html(title)}</h1>
@@ -1035,14 +873,6 @@ def sh_header(icon, title):
         </section>
         """,
         unsafe_allow_html=True,
-    )
-
-
-def verified_badge_html() -> str:
-    return (
-        '<span class="verified-badge" title="Verified">'
-        '<svg width="10" height="10" viewBox="0 0 24 24" fill="white">'
-        '<path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg></span>'
     )
 
 
@@ -1161,7 +991,7 @@ def record_mentions(sb, text: str, source_type: str, source_id: str, created_by:
 
 def linkify_mentions(text: str) -> str:
     escaped = safe_multiline(text)
-    return _re.sub(r'@(\w+)', r'<span style="color:#ff2d95;font-weight:700;text-shadow:0 0 12px rgba(255,45,149,.4);">@\1</span>', escaped)
+    return _re.sub(r'@(\w+)', r'<span style="color:var(--primary);font-weight:600;">@\1</span>', escaped)
 
 def get_unread_mention_count(sb, user_id, source_type=None) -> int:
     def load():
@@ -1426,7 +1256,7 @@ def refresh_current_user_session(sb, ttl: int = 300) -> bool:
     if time.time() - st.session_state.get("_profile_loaded_at", 0) < ttl and st.session_state.get("user"):
         return True
     try:
-        prof = sb.table("profiles").select(PROFILE_COLS).eq("id", st.session_state.user_id).limit(1).execute()
+        prof = sb.table("profiles").select("*").eq("id", st.session_state.user_id).limit(1).execute()
         if not prof.data:
             return False
         user = prof.data[0]
@@ -1481,56 +1311,564 @@ def get_sb() -> Client:
     return sb
 
 def get_platform_stats():
+    """
+    Lightweight counters used on the login page and sidebar.
+    Kept uncached because RLS means anonymous and authenticated users can
+    legitimately see different counts in the same browser session.
+    """
     def load():
         sb = get_sb()
         try:
-            r = sb.rpc("get_platform_stats").execute()
-            if r.data:
-                row = r.data[0] if isinstance(r.data, list) else r.data
-                return int(row.get("members", 0)), int(row.get("posts", 0)), int(row.get("messages", 0))
-        except Exception:
-            pass
-        try:
-            member_count = sb.table("profiles").select("id", count="exact").limit(0).execute().count or 0
-            post_count = sb.table("posts").select("id", count="exact").limit(0).execute().count or 0
-            msg_count = sb.table("messages").select("id", count="exact").limit(0).execute().count or 0
+            member_count = sb.table("profiles").select("id", count="exact").execute().count or 0
+            post_count   = sb.table("posts").select("id", count="exact").execute().count or 0
+            msg_count    = sb.table("messages").select("id", count="exact").execute().count or 0
         except Exception:
             member_count, post_count, msg_count = 0, 0, 0
         return member_count, post_count, msg_count
-    return session_cache_get("platform_stats", 60, load)
+    return session_cache_get("platform_stats", 300, load)
 
+def hp(p: str) -> str:
+    # Deprecated: password hashing is now handled entirely by Supabase
+    # Auth (see migrate_to_auth.sql). Kept only in case any legacy data
+    # still references it; no longer called by login/register.
+    return hashlib.sha256(p.encode()).hexdigest()
 
-def get_sidebar_badges(sb, user_id):
+import re as _re
+
+def extract_mentions(text: str) -> list:
+    """Returns a list of usernames mentioned via @username in `text`."""
+    return list(set(_re.findall(r'@(\w+)', text)))
+
+def escape_html(value) -> str:
+    return html.escape(str(value or ""), quote=True)
+
+def safe_multiline(value) -> str:
+    return escape_html(value).replace("\n", "<br>")
+
+def avatar_html(username, avatar_url=None, size=36, extra_class=""):
+    safe_initials = escape_html((username or "user")[:2].upper())
+    cls = f"av {extra_class}".strip()
+    style = f"width:{size}px;height:{size}px;font-size:{max(size * 0.24, 10):.0f}px;"
+    if avatar_url and str(avatar_url).startswith("data:image"):
+        safe_url = escape_html(avatar_url)
+        inner = f'<img src="{safe_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">'
+    else:
+        inner = safe_initials
+    return f'<div class="{cls}" style="{style}">{inner}</div>'
+
+def avatar_wrap_html(username, avatar_url=None, size=36, online=None, extra_class=""):
+    status = ""
+    if online is not None:
+        status_cls = "on" if online else "off"
+        status = f'<span class="status-badge {status_cls}"></span>'
+    return f'<div class="av-wrap">{avatar_html(username, avatar_url, size, extra_class)}{status}</div>'
+
+def get_profiles_map(sb, user_ids):
+    ids = list({uid for uid in user_ids if uid})
+    if not ids:
+        return {}
+    cache_key = f"profiles_map_{hash(tuple(sorted(ids)))}"
     def load():
-        badges = {"mentions": 0, "notif": 0, "msgs": 0}
         try:
-            badges["mentions"] = sb.table("mentions").select("id", count="exact").eq("mentioned_user_id", user_id).eq("is_read", False).limit(0).execute().count or 0
+            rows = sb.table("profiles").select("id,username,avatar_url,is_verified,profile_badge").in_("id", ids).execute()
+            return {row["id"]: row for row in (rows.data or [])}
         except Exception:
-            pass
-        try:
-            badges["notif"] = sb.table("notifications").select("id", count="exact").eq("user_id", user_id).eq("is_read", False).limit(0).execute().count or 0
-        except Exception:
-            pass
-        try:
-            rows = sb.table("messages").select("sender_id").eq("receiver_id", user_id).eq("is_read", False).execute()
-            badges["msgs"] = len(rows.data or [])
-        except Exception:
-            pass
-        return badges
-    return session_cache_get(f"sidebar_badges_{user_id}", 15, load)
+            return {}
+    return session_cache_get(cache_key, 30, load)
 
-
-def touch_last_seen(sb, user_id):
-    key = f"last_seen_touch_{user_id}"
-    now = time.time()
-    if now - st.session_state.get(key, 0) < 60:
+def record_mentions(sb, text: str, source_type: str, source_id: str, created_by: str):
+    """
+    Looks up @username mentions in `text` against real profiles and
+    inserts a `mentions` row for each match, so the mentioned user can
+    see a "you were mentioned" notification.
+    """
+    usernames = extract_mentions(text)
+    if not usernames:
         return
-    st.session_state[key] = now
     try:
-        sb.table("profiles").update({"last_seen": datetime.now(timezone.utc).isoformat()}).eq("id", user_id).execute()
+        matched = sb.table("profiles").select("id,username").in_("username", usernames).execute()
+        for u in (matched.data or []):
+            if u["id"] == created_by:
+                continue  # don't notify yourself for self-mentions
+            sb.table("mentions").insert({
+                "mentioned_user_id": u["id"],
+                "source_type": source_type,
+                "source_id": source_id,
+                "created_by": created_by,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            }, returning=ReturnMethod.minimal).execute()
+            create_notification(
+                sb,
+                u["id"],
+                created_by,
+                "mention",
+                "You were mentioned",
+                f"Someone mentioned you in a {source_type.replace('_', ' ')}.",
+                source_type,
+                source_id,
+            )
     except Exception:
         pass
 
+def linkify_mentions(text: str) -> str:
+    """Escapes text, then wraps @username occurrences in a styled span."""
+    escaped = safe_multiline(text)
+    return _re.sub(r'@(\w+)', r'<span style="color:var(--primary);font-weight:600;">@\1</span>', escaped)
+
+def get_unread_mention_count(sb, user_id, source_type=None) -> int:
+    def load():
+        try:
+            q = sb.table("mentions").select("id", count="exact").eq("mentioned_user_id", user_id).eq("is_read", False)
+            if source_type:
+                q = q.eq("source_type", source_type)
+            r = q.execute()
+            return r.count or 0
+        except Exception:
+            return 0
+    return session_cache_get(f"mention_count_{user_id}_{source_type or 'all'}", 20, load)
+
+def mark_mentions_read(sb, user_id, source_type=None):
+    try:
+        q = sb.table("mentions").update({"is_read": True}).eq("mentioned_user_id", user_id).eq("is_read", False)
+        if source_type:
+            q = q.eq("source_type", source_type)
+        q.execute()
+        session_cache_clear(f"mention_count_{user_id}")
+    except Exception:
+        pass
+
+def check_rate_limit(action: str, limit: int = 6, seconds: int = 60) -> bool:
+    """Small per-session rate limiter for costly writes."""
+    key = f"rate_{action}"
+    now = time.time()
+    hits = [t for t in st.session_state.get(key, []) if now - t < seconds]
+    if len(hits) >= limit:
+        st.warning(f"Slow down a little. Try again in {int(seconds - (now - hits[0]))}s.")
+        st.session_state[key] = hits
+        return False
+    hits.append(now)
+    st.session_state[key] = hits
+    return True
+
+def create_notification(sb, user_id, actor_id, kind, title, body="", source_type=None, source_id=None):
+    if not user_id or user_id == actor_id:
+        return
+    try:
+        sb.table("notifications").insert({
+            "user_id": user_id,
+            "actor_id": actor_id,
+            "kind": kind,
+            "title": title,
+            "body": body,
+            "source_type": source_type,
+            "source_id": source_id,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }, returning=ReturnMethod.minimal).execute()
+        session_cache_clear(f"notification_count_{user_id}")
+        session_cache_clear(f"notifications_page_{user_id}")
+    except Exception:
+        pass
+
+def get_unread_notification_count(sb, user_id) -> int:
+    def load():
+        try:
+            r = sb.table("notifications").select("id", count="exact").eq("user_id", user_id).eq("is_read", False).execute()
+            return r.count or 0
+        except Exception:
+            return 0
+    return session_cache_get(f"notification_count_{user_id}", 20, load)
+
+def follow_counts(sb, user_id):
+    def load():
+        try:
+            followers = sb.table("user_follows").select("id", count="exact").eq("following_id", user_id).execute().count or 0
+            following = sb.table("user_follows").select("id", count="exact").eq("follower_id", user_id).execute().count or 0
+            return followers, following
+        except Exception:
+            return 0, 0
+    return session_cache_get(f"follow_counts_{user_id}", 30, load)
+
+def is_following(sb, follower_id, following_id) -> bool:
+    try:
+        r = sb.table("user_follows").select("id").eq("follower_id", follower_id).eq("following_id", following_id).limit(1).execute()
+        return bool(r.data)
+    except Exception:
+        return False
+
+def user_activity_counts(sb, user_id):
+    def load():
+        try:
+            posts = sb.table("posts").select("id", count="exact").eq("user_id", user_id).execute().count or 0
+            habits = sb.table("habits").select("id", count="exact").eq("user_id", user_id).execute().count or 0
+            events = sb.table("events").select("id", count="exact").eq("user_id", user_id).execute().count or 0
+            return posts, habits, events
+        except Exception:
+            return 0, 0, 0
+    return session_cache_get(f"user_activity_counts_{user_id}", 30, load)
+
+def user_sent_message_count(sb, user_id):
+    def load():
+        try:
+            return sb.table("messages").select("id", count="exact").eq("sender_id", user_id).execute().count or 0
+        except Exception:
+            return 0
+    return session_cache_get(f"user_sent_message_count_{user_id}", 30, load)
+
+def report_target(sb, target_type, target_id, reason):
+    if not reason or not reason.strip():
+        st.error("Please enter a short reason.")
+        return
+    if not check_rate_limit("report", limit=3, seconds=120):
+        return
+    try:
+        sb.table("reports").insert({
+            "reporter_id": st.session_state.user_id,
+            "target_type": target_type,
+            "target_id": target_id,
+            "reason": reason.strip()[:300],
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }).execute()
+        st.success("Report sent to admins.")
+    except Exception as e:
+        st.error(f"Could not send report: {e}")
+
+def render_attachment_preview(url, name, file_type):
+    if not url:
+        return ""
+    return render_attachment_html(url, name, file_type)
+
+def ago(ts: str) -> str:
+    try:
+        dt = datetime.fromisoformat(ts.replace("Z","+00:00")).replace(tzinfo=None)
+        d  = datetime.now(timezone.utc).replace(tzinfo=None) - dt
+        if d.seconds < 60: return "just now"
+        if d.seconds < 3600: return f"{d.seconds//60}m ago"
+        if d.days < 1: return f"{d.seconds//3600}h ago"
+        return f"{d.days}d ago"
+    except: return ""
+
+PAGE_SUBTITLES = {
+    "Home Feed": "Publish updates, discover your community, react to posts, and jump into member profiles.",
+    "Discover": "Search members, follow people, open public profiles, and grow your workspace network.",
+    "Notifications": "Review follows, mentions, comments, reactions, messages, and workspace alerts.",
+    "AI Assistant": "Ask questions, draft ideas, and get fast help without leaving your workspace.",
+    "Live Chat": "Private conversations with unread badges, attachments, mentions, search, and typing status.",
+    "Calendar": "Plan upcoming events, meetings, reminders, and personal schedules in one clean view.",
+    "Channels": "Team spaces for group chat, file sharing, mentions, and public community rooms.",
+    "Habit Tracker": "Track streaks, weekly progress, shared habits, and personal routines.",
+    "My Profile": "Control your identity, avatar, bio, posts, and account presence.",
+    "Admin Panel": "Moderate members, posts, channels, bans, and workspace access from one control center.",
+}
+
+def sh_header(icon, title):
+    subtitle = PAGE_SUBTITLES.get(title, APP_TAGLINE)
+    st.markdown(
+        f"""
+        <section class="sh">
+          <div class="sh-icon">{icon}</div>
+          <div>
+            <h1 class="sh-title">{escape_html(title)}</h1>
+            <div class="sh-sub">{escape_html(subtitle)}</div>
+          </div>
+        </section>
+        """,
+        unsafe_allow_html=True,
+    )
+
+def card(html):
+    st.markdown(f'<div class="card">{html}</div>', unsafe_allow_html=True)
+
+def logo_img(size=80, css_class="hero-logo-img"):
+    if LOGO_SRC:
+        return f'<img src="{LOGO_SRC}" width="{size}" height="{size}" class="{css_class}" style="border-radius:20%;object-fit:contain;">'
+    return f'<span class="hero-logo-emoji">🌙</span>'
+
+def logo_small(size=32):
+    if LOGO_SRC:
+        return f'<img src="{LOGO_SRC}" width="{size}" height="{size}" style="border-radius:8px;object-fit:contain;vertical-align:middle;">'
+    return "🌙"
+
+def render_cube():
+    """
+    Render the signature 3D rotating cube for the login page.
+    Six faces, each representing a core LifeHub module.
+    Pure CSS — no canvas/WebGL, so it renders reliably inside
+    Streamlit's HTML sandbox with no extra dependencies.
+    """
+    faces = [
+        ("front",  "🤖", "AI Chat"),
+        ("back",   "💬", "Live Chat"),
+        ("right",  "📅", "Calendar"),
+        ("left",   "🏠", "Home"),
+        ("top",    "✅", "Habits"),
+        ("bottom", "👤", "Profile"),
+    ]
+    faces_html = "".join(
+        f'<div class="cube-face {cls}"><span class="ico">{ico}</span><span class="lbl">{lbl}</span></div>'
+        for cls, ico, lbl in faces
+    )
+    st.markdown(f"""
+    <div class="cube-stage">
+      <div class="cube">{faces_html}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+def inject_theme_css():
+    theme = st.session_state.get("theme_mode", "Midnight")
+    if theme == "Ocean":
+        st.markdown("""
+        <style>
+        :root{
+          --bg:#031525; --bg2:#082f49; --card:rgba(8,47,73,.82);
+          --primary:#38bdf8; --primary-light:#0ea5e9; --primary-light:#0284c7; --secondary:#7dd3fc;
+          --primary:rgba(14,165,233,.32);
+        }
+        html, body, .stApp {
+          background:
+            radial-gradient(circle at 12% 8%, rgba(14,165,233,.28), transparent 28%),
+            radial-gradient(circle at 88% 12%, rgba(59,130,246,.20), transparent 30%),
+            linear-gradient(135deg, #031525, #082f49 48%, #0f172a 100%) !important;
+        }
+        section[data-testid="stSidebar"] {
+          background: linear-gradient(180deg, rgba(3,21,37,.98), rgba(8,47,73,.96)) !important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown("""
+        <style>
+        :root{
+          --bg:#070b18; --bg2:#0f172a; --card:rgba(15,23,42,.78);
+          --primary:#5865F2; --primary-light:#4752C4; --primary-light:#3C45A5; --secondary:#7C83FF;
+          --primary:rgba(88,101,242,.30);
+        }
+        html, body, .stApp {
+          background:
+            radial-gradient(circle at 12% 8%, rgba(88,101,242,.20), transparent 28%),
+            radial-gradient(circle at 88% 12%, rgba(124,58,237,.16), transparent 30%),
+            linear-gradient(135deg, #070b18, #0f172a 55%, #050816 100%) !important;
+        }
+        section[data-testid="stSidebar"] {
+          background: linear-gradient(180deg, rgba(5,8,22,.98), rgba(8,13,31,.96)) !important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+
+def get_recovery_tokens_from_url():
+    """
+    Supabase's password-reset email link redirects the browser with
+    the session tokens in the URL *fragment*
+    (#access_token=...&type=recovery), which only JavaScript can read
+    — a Python/Streamlit server never sees it (browsers don't send
+    URL fragments in HTTP requests at all). That's why the app was
+    previously falling through to the normal login page instead of
+    showing a reset form: nothing ever looked at the fragment.
+
+    Uses streamlit-javascript's st_javascript(), which runs JS in the
+    browser and returns the result directly back into this Python
+    script run (no reload/redirect race, unlike the earlier approach
+    that tried to rewrite the URL and force a reload — that round-trip
+    never reliably fired).
+
+    Returns one of:
+      ("pending", None, None)   — JS hasn't returned a result yet;
+                                   caller should show a brief loading
+                                   state and let the component's own
+                                   rerun resolve this on the next pass.
+      ("none", None, None)      — confirmed not a recovery link visit.
+      ("found", access, refresh) — recovery tokens extracted.
+    """
+    from streamlit_javascript import st_javascript
+
+    raw_hash = st_javascript("window.parent.location.hash")
+
+    # st_javascript returns 0 (not a string) while the JS call is
+    # still in flight on the browser side.
+    if not isinstance(raw_hash, str):
+        return "pending", None, None
+
+    if "type=recovery" not in raw_hash:
+        return "none", None, None
+
+    params = parse_qs(raw_hash.lstrip("#"))
+    access_token = params.get("access_token", [None])[0]
+    refresh_token = params.get("refresh_token", [None])[0]
+
+    if not access_token:
+        return "none", None, None
+
+    return "found", access_token, refresh_token
+
+def get_saved_auth_tokens_from_browser():
+    """Read persisted Supabase tokens from browser localStorage."""
+    from streamlit_javascript import st_javascript
+
+    raw = st_javascript("""
+    (() => {
+      try {
+        return window.parent.localStorage.getItem("lifehub_auth_tokens") || "";
+      } catch (e) {
+        return "";
+      }
+    })()
+    """)
+    if not isinstance(raw, str):
+        return "pending", None, None
+    if not raw:
+        return "none", None, None
+    try:
+        data = json.loads(raw)
+        access_token = data.get("access_token")
+        refresh_token = data.get("refresh_token")
+        if access_token and refresh_token:
+            return "found", access_token, refresh_token
+    except Exception:
+        pass
+    return "none", None, None
+
+def save_auth_tokens_to_browser():
+    """Persist current Supabase tokens so refresh/reopen keeps the user logged in."""
+    access_token = st.session_state.get("sb_access_token")
+    refresh_token = st.session_state.get("sb_refresh_token")
+    if not access_token or not refresh_token:
+        return
+    auth_key = f"{access_token[:16]}|{refresh_token[:16]}"
+    if st.session_state.get("_browser_auth_saved_key") == auth_key:
+        return
+
+    from streamlit_javascript import st_javascript
+
+    payload = json.dumps({
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+    })
+    st.components.v1.html(
+        f"""
+        <script>
+        try {{
+          window.parent.localStorage.setItem("lifehub_auth_tokens", {json.dumps(payload)});
+        }} catch (e) {{}}
+        </script>
+        """,
+        height=0,
+    )
+    st.session_state["_browser_auth_saved_key"] = auth_key
+
+def clear_auth_tokens_from_browser():
+    st.components.v1.html(
+        """
+        <script>
+        try {
+          window.parent.localStorage.removeItem("lifehub_auth_tokens");
+        } catch (e) {}
+        </script>
+        """,
+        height=0,
+    )
+
+def restore_login_from_saved_tokens() -> str:
+    """Return pending/restored/none/invalid for persisted browser login."""
+    status, access_token, refresh_token = get_saved_auth_tokens_from_browser()
+    if status != "found":
+        return status
+    try:
+        st.session_state.sb_access_token = access_token
+        st.session_state.sb_refresh_token = refresh_token
+        sb = get_sb()
+        user_res = sb.auth.get_user()
+        auth_user = getattr(user_res, "user", None)
+        if not auth_user:
+            return "invalid"
+        prof = sb.table("profiles").select("*").eq("id", auth_user.id).limit(1).execute()
+        if not prof.data:
+            return "invalid"
+        user = prof.data[0]
+        if user.get("is_banned"):
+            return "invalid"
+        set_current_user_session(user)
+        st.session_state.viewing_user = None
+        st.session_state["_auth_transition"] = False
+        return "restored"
+    except Exception:
+        return "invalid"
+
+def get_user_profile(user_id):
+    def load():
+        sb = get_sb()
+        result = sb.table("profiles").select("*").eq("id", user_id).execute()
+        return result.data[0] if result.data else None
+    return session_cache_get(f"profile_{user_id}", 30, load)
+
+def get_user_by_username(username):
+    if not username:
+        return None
+    def load():
+        try:
+            sb = get_sb()
+            result = sb.table("profiles").select("*").eq("username", username).limit(1).execute()
+            return result.data[0] if result.data else None
+        except Exception:
+            return None
+    return session_cache_get(f"profile_username_{username}", 30, load)
+
+# ── Groq AI ──────────────────────────────────────────────
+# ── Groq Chat Completions Helper (OpenAI-compatible) ────────
+
+# Groq retires/renames models periodically — try the best one first,
+# fall back automatically so chat never hard-fails on a stale model id.
+GROQ_MODEL_CANDIDATES = [
+    "llama-3.3-70b-versatile",
+    "llama-3.1-8b-instant",
+    "openai/gpt-oss-120b",
+]
+
+def call_groq(messages, api_key):
+    """
+    Sends a chat-style message list to Groq's OpenAI-compatible endpoint.
+    `messages` is a list of {"role": "user"|"assistant"|"system", "content": str}.
+    Tries each candidate model in order until one succeeds.
+    """
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+
+    last_error = None
+    for model in GROQ_MODEL_CANDIDATES:
+        payload = {
+            "model": model,
+            "messages": messages,
+            "temperature": 0.7,
+            "max_tokens": 1024,
+        }
+        try:
+            resp = requests.post(
+                f"{GROQ_BASE_URL}/chat/completions",
+                headers=headers, json=payload, timeout=30,
+            )
+        except requests.RequestException as e:
+            last_error = f"Network error contacting Groq ({model}): {e}"
+            continue
+
+        if resp.status_code == 200:
+            data = resp.json()
+            try:
+                return data["choices"][0]["message"]["content"]
+            except (KeyError, IndexError):
+                return "Error: Could not parse response content from Groq."
+
+        if resp.status_code in (404, 400):
+            # Model retired/invalid — try next candidate.
+            last_error = f"Groq API Error ({resp.status_code}) for model '{model}': {resp.text}"
+            continue
+
+        # Auth/quota/other errors — no point trying other models.
+        return f"Groq API Error ({resp.status_code}): {resp.text}"
+
+    return f"Groq API Error: all model candidates failed. Last error: {last_error}"
+
+
+# ============================================================
 # AUTH PAGE — Premium Design
 # ============================================================
 def reset_password_page():
@@ -1615,11 +1953,16 @@ def auth_page():
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.markdown(f"""
-        <div class="auth-hero">
+        <div class="auth-hero" style="text-align:center;padding:1rem 0 1.5rem;">
           {logo_img(100)}
-          <h1 class="hero-title">{APP_NAME}</h1>
-          <p style="color:#e9d5ff;font-size:1.05rem;margin:0;">{APP_TAGLINE}</p>
-          <p style="color:#c4b5fd;font-size:0.85rem;margin-top:0.3rem;">Secure social tools, AI support, habits, events, and team channels</p>
+          <h1 class="hero-title" style="font-size:3.5rem;font-weight:900;font-family:'Space Grotesk',sans-serif;
+            background:linear-gradient(135deg, #5865F2, #3C45A5);
+            -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+            margin:0.5rem 0;">
+            LifeHub
+          </h1>
+          <p style="color:var(--text-secondary);font-size:1.05rem;margin:0;">{APP_TAGLINE}</p>
+          <p style="color:var(--text-muted);font-size:0.85rem;margin-top:0.3rem;">Secure social tools, AI support, habits, events, and team channels</p>
         </div>
         """, unsafe_allow_html=True)
 
@@ -1669,7 +2012,7 @@ def auth_page():
                             sb.auth.set_session(auth_res.session.access_token, auth_res.session.refresh_token)
                         except Exception:
                             pass
-                    prof = sb.table("profiles").select(PROFILE_COLS).eq("id", auth_res.user.id).execute()
+                    prof = sb.table("profiles").select("*").eq("id", auth_res.user.id).execute()
                     if not prof.data:
                         st.session_state["_auth_busy"] = False
                         st.error("Account exists but has no profile yet. Run the latest schema.sql in Supabase.")
@@ -1771,10 +2114,19 @@ def auth_page():
             A refined dashboard for posts, AI assistance, live messaging, planning, habits, and profiles.
           </p>
           
-          <div class="stat-grid" style="margin:.5rem 0 1rem;">
-            <div class="stat-pill"><div class="num">{member_count}</div><div class="cap">Members</div></div>
-            <div class="stat-pill"><div class="num">{post_count}</div><div class="cap">Posts</div></div>
-            <div class="stat-pill"><div class="num">{msg_count}</div><div class="cap">Messages</div></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.5rem;margin:0.5rem 0 1rem;">
+            <div style="background:var(--bg2);border-radius:12px;padding:1rem 0.5rem;border:1px solid rgba(88,101,242,0.05);">
+              <div style="font-size:1.8rem;font-weight:900;color:var(--primary);">{member_count}</div>
+              <div style="color:var(--text-muted);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;">Members</div>
+            </div>
+            <div style="background:var(--bg2);border-radius:12px;padding:1rem 0.5rem;border:1px solid rgba(88,101,242,0.05);">
+              <div style="font-size:1.8rem;font-weight:900;color:var(--primary);">{post_count}</div>
+              <div style="color:var(--text-muted);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;">Posts</div>
+            </div>
+            <div style="background:var(--bg2);border-radius:12px;padding:1rem 0.5rem;border:1px solid rgba(88,101,242,0.05);">
+              <div style="font-size:1.8rem;font-weight:900;color:var(--primary);">{msg_count}</div>
+              <div style="color:var(--text-muted);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;">Messages</div>
+            </div>
           </div>
           
           <div style="margin-top:0.5rem;padding-top:1rem;border-top:1px solid rgba(88,101,242,0.06);">
@@ -1816,9 +2168,9 @@ def view_user_profile(user_id):
       <div style="display:flex;align-items:center;gap:1.5rem;margin-bottom:1.5rem;">
         {avatar_html(user.get('username', 'user'), user.get('avatar_url'), 80, 'av-lg')}
         <div>
-          <h2 style="margin:0;font-family:'Space Grotesk',sans-serif;color:var(--primary);">@{safe_username}{verified_badge_html() if user.get('is_verified') else ''}</h2>
+          <h2 style="margin:0;font-family:'Space Grotesk',sans-serif;color:var(--primary);">@{safe_username}</h2>
           <div style="color:var(--text-muted);font-size:.78rem;margin-top:.2rem;">
-            {'Admin · ' if user.get('is_admin') else ''}{escape_html(user.get('profile_badge') or 'Member')}
+            {'✓ Verified · ' if user.get('is_verified') else ''}{'Admin · ' if user.get('is_admin') else ''}{escape_html(user.get('profile_badge') or 'Member')}
           </div>
           <div style="color:{'var(--primary)' if is_online else 'var(--text-muted)'};font-size:.9rem;margin:.2rem 0;">
             {'<span class="online"></span>Online now' if is_online else '⚫ Offline'}
@@ -1828,12 +2180,27 @@ def view_user_profile(user_id):
         </div>
       </div>
       
-      <div class="profile-stats">
-        <div class="metric"><div class="val">{post_total}</div><div class="lbl">Posts</div></div>
-        <div class="metric"><div class="val">{habit_total}</div><div class="lbl">Habits</div></div>
-        <div class="metric"><div class="val">{event_total}</div><div class="lbl">Events</div></div>
-        <div class="metric"><div class="val">{followers}</div><div class="lbl">Followers</div></div>
-        <div class="metric"><div class="val">{following}</div><div class="lbl">Following</div></div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin:1rem 0;">
+        <div class="metric" style="padding:1rem;">
+          <div class="val" style="font-size:1.8rem;">{post_total}</div>
+          <div class="lbl">Posts</div>
+        </div>
+        <div class="metric" style="padding:1rem;">
+          <div class="val" style="font-size:1.8rem;">{habit_total}</div>
+          <div class="lbl">Habits</div>
+        </div>
+        <div class="metric" style="padding:1rem;">
+          <div class="val" style="font-size:1.8rem;">{event_total}</div>
+          <div class="lbl">Events</div>
+        </div>
+        <div class="metric" style="padding:1rem;">
+          <div class="val" style="font-size:1.8rem;">{followers}</div>
+          <div class="lbl">Followers</div>
+        </div>
+        <div class="metric" style="padding:1rem;">
+          <div class="val" style="font-size:1.8rem;">{following}</div>
+          <div class="lbl">Following</div>
+        </div>
       </div>
     </div>
     """, unsafe_allow_html=True)
@@ -2382,6 +2749,96 @@ def ai_chat_page():
 # ============================================================
 # LIVE CHAT — PERSISTENT
 # ============================================================
+def get_unread_counts(sb, user_id):
+    """
+    Returns {sender_id: unread_count} for all unread DMs addressed to
+    the current user. Used to show badges in the chat-partner selector.
+    """
+    def load():
+        try:
+            rows = sb.table("messages").select("sender_id").eq("receiver_id", user_id).eq("is_read", False).execute()
+            counts = {}
+            for r in (rows.data or []):
+                counts[r["sender_id"]] = counts.get(r["sender_id"], 0) + 1
+            return counts
+        except Exception:
+            return {}
+    return session_cache_get(f"dm_unread_{user_id}", 20, load)
+
+
+def set_typing(sb, user_id, target_id):
+    """Upserts a 'typing' heartbeat row, read by the other party's fragment."""
+    key = f"typing_heartbeat_{target_id}"
+    now = time.time()
+    if now - st.session_state.get(key, 0) < 2:
+        return
+    try:
+        sb.table("typing_status").upsert({
+            "user_id": user_id, "target_id": target_id,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }, on_conflict="user_id,target_id").execute()
+        st.session_state[key] = now
+    except Exception:
+        pass
+
+
+def is_other_typing(sb, other_id, my_id):
+    """True if `other_id` had a typing heartbeat aimed at me in the last 4s."""
+    try:
+        cutoff = (datetime.now(timezone.utc) - timedelta(seconds=4)).isoformat()
+        r = sb.table("typing_status").select("updated_at").eq("user_id", other_id).eq("target_id", my_id).gte("updated_at", cutoff).execute()
+        return bool(r.data)
+    except Exception:
+        return False
+
+
+def file_to_data_uri(uploaded_file, max_dim=640) -> dict:
+    """
+    Converts an uploaded file to a base64 data URI, same storage
+    pattern already used for avatars. Images are resized to cap size;
+    non-image files are stored as-is (small files only — this is a
+    base64-in-DB approach, not real object storage, so keep it light).
+    Returns {"url":..., "name":..., "type": "image"|"file"} or None.
+    """
+    try:
+        name = uploaded_file.name
+        ext = name.split(".")[-1].lower()
+        if ext in ("png", "jpg", "jpeg", "gif", "webp"):
+            img = Image.open(uploaded_file)
+            img.thumbnail((max_dim, max_dim))
+            buf = io.BytesIO()
+            fmt = "PNG" if ext in ("png", "gif") else "JPEG"
+            save_kwargs = {"optimize": True}
+            if fmt == "JPEG":
+                save_kwargs["quality"] = 75
+            img.convert("RGB" if fmt == "JPEG" else "RGBA").save(buf, format=fmt, **save_kwargs)
+            b64 = base64.b64encode(buf.getvalue()).decode()
+            mime = "image/png" if fmt == "PNG" else "image/jpeg"
+            return {"url": f"data:{mime};base64,{b64}", "name": name, "type": "image"}
+        else:
+            raw = uploaded_file.read()
+            if len(raw) > 2 * 1024 * 1024:
+                st.error("File too large — 2MB max.")
+                return None
+            b64 = base64.b64encode(raw).decode()
+            return {"url": f"data:application/octet-stream;base64,{b64}", "name": name, "type": "file"}
+    except Exception as e:
+        st.error(f"Could not process file: {e}")
+        return None
+
+
+def render_attachment_html(file_url, file_name, file_type):
+    if not file_url:
+        return ""
+    safe_name = escape_html(file_name or "attachment")
+    if file_type == "image":
+        return f'<img src="{file_url}" style="max-width:280px;max-height:280px;border-radius:10px;margin-top:.4rem;display:block;">'
+    return (f'<a href="{file_url}" download="{safe_name}" '
+            f'style="display:inline-flex;align-items:center;gap:.4rem;margin-top:.4rem;'
+            f'background:rgba(88,101,242,0.12);padding:.4rem .8rem;border-radius:8px;'
+            f'color:var(--primary);text-decoration:none;font-size:.85rem;">📎 {safe_name}</a>')
+
+
 @st.fragment(run_every=1)
 def render_live_messages_fragment(sb, tid, sel, target_avatar):
     """
@@ -3221,20 +3678,27 @@ def sidebar():
         logo_html = logo_small(40)
         st.markdown(f"""
         <div class="brand">
-          <div class="brand-chip">
+          <div style="display:flex;align-items:center;justify-content:center;gap:.8rem;margin-bottom:.3rem;">
             {logo_html}
-            <div>
-              <div class="brand-name">{APP_NAME}</div>
-              <div style="color:var(--text-muted);font-size:.68rem;">Professional Workspace</div>
-            </div>
+            <span class="brand-name">LifeHub</span>
           </div>
+          <div style="color:var(--text-muted);font-size:.7rem;">Professional Workspace</div>
         </div>
         """, unsafe_allow_html=True)
 
-        badges = get_sidebar_badges(sb, st.session_state.user_id)
-        unread_dms = badges["msgs"]
-        unread_mentions = badges["mentions"]
-        unread_notifications = badges["notif"]
+        # Unread counts for badge display
+        try:
+            unread_dms = sum(get_unread_counts(sb, st.session_state.user_id).values())
+        except Exception:
+            unread_dms = 0
+        try:
+            unread_mentions = get_unread_mention_count(sb, st.session_state.user_id)
+        except Exception:
+            unread_mentions = 0
+        try:
+            unread_notifications = get_unread_notification_count(sb, st.session_state.user_id)
+        except Exception:
+            unread_notifications = 0
         is_admin = st.session_state.user.get("is_admin", False)
 
         with st.container(border=True):
@@ -3290,8 +3754,8 @@ def sidebar():
             nav_btn("🛡️", "Admin", "admin")
 
         st.markdown("---")
-        theme_before = st.session_state.get("theme_mode", "Neon")
-        theme = st.radio("Theme", ["Neon", "Ocean", "Sunset"], horizontal=True, key="theme_mode")
+        theme_before = st.session_state.get("theme_mode", "Midnight")
+        theme = st.radio("Theme", ["Midnight", "Ocean"], horizontal=True, key="theme_mode")
         if theme != theme_before:
             st.rerun()
 
@@ -3549,7 +4013,6 @@ def main():
         clear_auth_tokens_from_browser()
         st.error("Your session expired or your profile could not be loaded. Please sign in again.")
         return
-    touch_last_seen(sb, st.session_state.user_id)
 
     try:
         profile_param = st.query_params.get("profile")
