@@ -1176,6 +1176,227 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
 .cube-stage {
   perspective: 1400px !important;
 }
+
+/* ============================================================
+   ✦ CREATIVE LAYER ✦ — bold, expressive flourishes layered on
+   top of everything above. Pure aesthetics; no layout removed.
+   ============================================================ */
+
+/* Shifting multi-color gradient text for big headings */
+.sh-title, .brand-name, .hero-title {
+  background-size: 220% auto !important;
+  background-image: linear-gradient(110deg, #818cf8, #22d3ee 30%, #f472b6 55%, #818cf8 80%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  animation: textFlow 8s linear infinite;
+}
+
+@keyframes textFlow {
+  to { background-position: 220% center; }
+}
+
+/* Always-on living gradient halo around posts + the form */
+.post::after, div[data-testid="stForm"]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: linear-gradient(130deg, rgba(129,140,248,0.7), rgba(6,182,212,0.0) 35%, rgba(244,114,182,0.0) 65%, rgba(244,114,182,0.6));
+  background-size: 250% 250%;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.55;
+  animation: haloFlow 7s ease infinite;
+  pointer-events: none;
+}
+
+.post:hover::after, div[data-testid="stForm"]:hover::after {
+  opacity: 1;
+}
+
+@keyframes haloFlow {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* Rotating conic glow ring behind avatars */
+.av-wrap::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, #6366f1, #06b6d4, #f472b6, #6366f1);
+  filter: blur(5px);
+  opacity: 0;
+  z-index: 0;
+  transition: opacity 0.35s ease;
+  animation: ringSpin 6s linear infinite;
+}
+
+.av-wrap:hover::before {
+  opacity: 0.85;
+}
+
+/* Keep the avatar itself above its glow ring */
+.av-wrap .av {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes ringSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* Post images: framed, rounded, with a playful hover zoom + glow */
+.post img, .msg-line img, .bother img, .bme img {
+  border-radius: 16px !important;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  box-shadow: 0 14px 45px rgba(2, 6, 23, 0.5);
+  transition: transform 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28), box-shadow 0.4s ease;
+  cursor: zoom-in;
+}
+
+.post img:hover, .msg-line img:hover {
+  transform: scale(1.04) rotate(-0.6deg);
+  box-shadow: 0 22px 70px rgba(99, 102, 241, 0.4);
+}
+
+/* Animated gradient underline under markdown section subheadings */
+.main h3 {
+  position: relative;
+  display: inline-block;
+  padding-bottom: 0.25rem;
+}
+
+.main h3::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  width: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--primary), var(--secondary), transparent);
+  background-size: 200% 100%;
+  animation: hfillShimmer 4s linear infinite;
+  transform-origin: left;
+  transform: scaleX(0.4);
+  transition: transform 0.4s ease;
+}
+
+.main h3:hover::after {
+  transform: scaleX(1);
+}
+
+/* Reaction / small action buttons get a neon pop on hover */
+.stButton > button:hover {
+  filter: saturate(1.25) brightness(1.06);
+}
+
+/* Badge ("You", "New", "Verified") — glassy glow pill */
+.badge {
+  background: linear-gradient(135deg, rgba(99,102,241,0.3), rgba(6,182,212,0.25)) !important;
+  color: #e0e7ff !important;
+  border: 1px solid rgba(129,140,248,0.45) !important;
+  box-shadow: 0 0 16px rgba(99,102,241,0.25);
+  backdrop-filter: blur(6px);
+}
+
+/* Expander headers feel like interactive chips */
+div[data-testid="stExpander"] summary,
+div[data-testid="stExpander"] details > summary {
+  font-weight: 700 !important;
+  transition: color 0.25s ease, letter-spacing 0.25s ease;
+}
+
+div[data-testid="stExpander"]:hover summary {
+  color: var(--primary-light) !important;
+  letter-spacing: 0.01em;
+}
+
+/* Sidebar nav buttons: animated active glow bar */
+section[data-testid="stSidebar"] .stButton > button {
+  position: relative;
+  overflow: hidden;
+}
+
+section[data-testid="stSidebar"] .stButton > button::after {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg, var(--primary), var(--secondary));
+  transform: scaleY(0);
+  transform-origin: center;
+  transition: transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+  border-radius: 0 4px 4px 0;
+}
+
+section[data-testid="stSidebar"] .stButton > button:hover::after {
+  transform: scaleY(1);
+}
+
+/* Tabs: glowing animated indicator on the selected tab */
+.stTabs [aria-selected="true"] {
+  position: relative;
+  box-shadow: 0 0 0 1px rgba(99,102,241,0.4) inset, 0 10px 30px rgba(99,102,241,0.28) !important;
+}
+
+/* Metric value: gentle breathing glow */
+.metric:hover .val {
+  filter: drop-shadow(0 4px 26px rgba(34, 211, 238, 0.55));
+}
+
+/* Chat bubbles: subtle floating sheen */
+.bme::after, .bother::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(120deg, transparent 40%, rgba(255,255,255,0.06) 50%, transparent 60%);
+  background-size: 250% 100%;
+  animation: haloFlow 6s ease infinite;
+  pointer-events: none;
+}
+.bme, .bother { position: relative; overflow: hidden; }
+
+/* Event cards: animated colored accent bar pulse */
+.ev-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.ev-card::after {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+  background: inherit;
+  filter: brightness(1.6);
+  animation: accentPulse 2.6s ease-in-out infinite;
+}
+
+@keyframes accentPulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+/* Inputs get a soft inner glow when focused (extra creative pop) */
+.stTextInput > div > div > input:focus,
+.stTextArea > div > div > textarea:focus {
+  box-shadow: 0 0 0 6px rgba(99, 102, 241, 0.16),
+              0 0 45px rgba(6, 182, 212, 0.22),
+              inset 0 0 18px rgba(99, 102, 241, 0.12) !important;
+}
+
+/* Logout button — distinct danger-tinted treatment */
+section[data-testid="stSidebar"] .stButton > button[kind],
+section[data-testid="stSidebar"] .stButton:last-of-type > button {
+  /* kept subtle to avoid overriding nav buttons unintentionally */
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -1838,14 +2059,30 @@ def get_platform_stats():
     """
     def load():
         sb = get_sb()
-        try:
-            member_count = sb.table("profiles").select("id", count="exact").execute().count or 0
-            post_count   = sb.table("posts").select("id", count="exact").execute().count or 0
-            msg_count    = sb.table("messages").select("id", count="exact").execute().count or 0
-        except Exception:
-            member_count, post_count, msg_count = 0, 0, 0
+        member_count = post_count = msg_count = 0
+        # Query each table independently so one blocked-by-RLS table
+        # (e.g. messages for anonymous visitors) doesn't zero out the
+        # others. A short fallback select is used when the exact count
+        # header isn't returned for the current role.
+        for table, attr in (("profiles", "member"), ("posts", "post"), ("messages", "msg")):
+            try:
+                res = sb.table(table).select("id", count="exact").execute()
+                value = res.count
+                if value is None:
+                    value = len(res.data or [])
+            except Exception:
+                value = 0
+            if attr == "member":
+                member_count = value
+            elif attr == "post":
+                post_count = value
+            else:
+                msg_count = value
         return member_count, post_count, msg_count
-    return session_cache_get("platform_stats", 300, load)
+    # Cache per-identity so the anonymous login-page counts never leak
+    # into the authenticated sidebar (and vice versa).
+    cache_id = st.session_state.get("user_id") or "anon"
+    return session_cache_get(f"platform_stats_{cache_id}", 120, load)
 
 def hp(p: str) -> str:
     # Deprecated: password hashing is now handled entirely by Supabase
