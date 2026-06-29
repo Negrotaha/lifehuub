@@ -1262,30 +1262,37 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
 /* Post images: framed, rounded, with a playful hover zoom + glow */
 .post img, .msg-line img, .bother img, .bme img {
   border-radius: 16px !important;
-  border: 1px solid rgba(148, 163, 184, 0.25);
+  border: 1px solid rgba(148, 163, 184, 0.25);e
   box-shadow: 0 14px 45px rgba(2, 6, 23, 0.5);
   transition: transform 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28), box-shadow 0.4s ease;
   cursor: zoom-in;
 }
 
-/* ---- Professional post header (avatar + name + time) ---- */
-.post-head {
-  display: flex;
-  align-items: center;
-  gap: 0.85rem;
-  margin-bottom: 0.9rem;
+/* ============================================================
+   DISCORD-STYLE POST: avatar column on the left, content column on
+   the right (name + inline time, message text, then an inline,
+   left-aligned image at a natural size).
+   ============================================================ */
+.post--discord {
+  display: flex !important;
+  gap: 0.9rem;
+  align-items: flex-start;
 }
 
-.post-head-meta {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+.post-avatar {
+  flex: 0 0 auto;
+  padding-top: 0.1rem;
+}
+
+.post-content {
+  flex: 1 1 auto;
   min-width: 0;
 }
 
 .post-head-name {
   display: flex;
-  align-items: center;
+  align-items: baseline;
+  flex-wrap: wrap;
   gap: 0.5rem;
   font-weight: 800;
   font-size: 1rem;
@@ -1298,42 +1305,30 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
 }
 
 .post-head-time {
-  font-size: 0.74rem;
+  font-size: 0.72rem;
+  font-weight: 500;
   color: var(--text-muted);
-  margin-top: 0.2rem;
 }
 
-/* ---- Post message text ---- */
+/* Message text */
 .post-text {
-  margin: 0 0 0.2rem;
+  margin: 0.2rem 0 0;
   color: var(--text-primary);
-  line-height: 1.75;
-  font-size: 0.97rem;
+  line-height: 1.6;
+  font-size: 0.96rem;
   word-wrap: break-word;
   overflow-wrap: anywhere;
 }
 
-/* ---- Professional media showcase: full-width framed embed shown
-   directly under the message. The frame spans the card so a post is
-   never half-empty; the image is centered on a soft backdrop with its
-   aspect ratio preserved (no crop, no distortion). ---- */
+/* Inline image embed, Discord-style: left-aligned, natural size,
+   rounded corners, no oversized backdrop frame. */
 .post-media {
-  margin-top: 1rem;
-  width: 100%;
-  max-width: 100%;
-  min-height: 200px;
-  padding: 1.1rem;
-  border-radius: 20px;
+  display: inline-block;
+  margin-top: 0.5rem;
+  max-width: min(100%, 440px);
+  border-radius: 10px;
   overflow: hidden;
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  background:
-    radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.12), transparent 60%),
-    linear-gradient(180deg, rgba(15, 23, 42, 0.55), rgba(2, 6, 23, 0.65));
-  box-shadow: 0 22px 60px rgba(2, 6, 23, 0.55),
-              inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  line-height: 0;
 }
 
 .post-media img {
@@ -1341,11 +1336,11 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
   width: auto !important;
   height: auto !important;
   max-width: 100% !important;
-  max-height: 440px !important;
-  margin: 0 auto !important;
-  border-radius: 12px !important;
-  border: 1px solid rgba(148, 163, 184, 0.18) !important;
-  box-shadow: 0 16px 45px rgba(2, 6, 23, 0.5) !important;
+  max-height: 360px !important;
+  margin: 0 !important;
+  border-radius: 10px !important;
+  border: 1px solid rgba(148, 163, 184, 0.16) !important;
+  box-shadow: 0 10px 30px rgba(2, 6, 23, 0.45) !important;
 }
 
 .post img:hover, .msg-line img:hover {
@@ -3332,24 +3327,24 @@ def home_page():
             safe_username = escape_html(p.get("username", "user"))
             content_html = linkify_mentions(p["content"])
 
-            # Professional post layout: clean header (avatar + name + time),
-            # the message text, then the image showcased full-width directly
-            # under the message.
+            # Discord-style message: avatar on the left, then a content
+            # column with the name + inline timestamp, the message text,
+            # and the image inline/left-aligned at a natural size beneath.
             media_html = render_attachment_preview(p.get('file_url'), p.get('file_name'), p.get('file_type'))
             name_color = 'var(--primary)' if mine else 'var(--text-primary)'
             you_badge = '<span class="badge">You</span>' if mine else ''
 
             st.markdown(f"""
-            <div class="post">
-              <div class="post-head">
-                {post_avatar}
-                <div class="post-head-meta">
-                  <div class="post-head-name" style="color:{name_color};">@{safe_username} {you_badge}</div>
-                  <div class="post-head-time">{ago(p['created_at'])}</div>
+            <div class="post post--discord">
+              <div class="post-avatar">{post_avatar}</div>
+              <div class="post-content">
+                <div class="post-head-name" style="color:{name_color};">
+                  @{safe_username} {you_badge}
+                  <span class="post-head-time">{ago(p['created_at'])}</span>
                 </div>
+                <p class="post-text">{content_html}</p>
+                {media_html}
               </div>
-              <p class="post-text post-text--full">{content_html}</p>
-              {media_html}
             </div>
             """, unsafe_allow_html=True)
 
