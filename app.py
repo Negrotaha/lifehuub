@@ -1268,15 +1268,17 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
   cursor: zoom-in;
 }
 
-/* Let post media fill the card width (responsive) instead of sitting
-   small on the left and leaving a large empty area. */
+/* Center post media so an image never sits lopsided on the left with
+   a large empty area to its right — symmetric margins read as
+   intentional design. Aspect ratio is preserved (no crop/distortion). */
 .post img {
-  width: 100% !important;
-  max-width: 520px !important;
-  max-height: 460px !important;
+  display: block !important;
+  margin: 0.7rem auto 0.2rem !important;
+  max-width: min(100%, 560px) !important;
+  max-height: 520px !important;
+  width: auto !important;
   height: auto !important;
-  object-fit: cover;
-  margin-top: 0.6rem;
+  object-fit: contain;
 }
 
 .post img:hover, .msg-line img:hover {
@@ -3245,97 +3247,103 @@ def home_page():
             safe_username = escape_html(p.get("username", "user"))
             content_html = linkify_mentions(p["content"])
 
-            col1, col2 = st.columns([5, 2])
-            with col1:
-                st.markdown(f"""
-                <div class="post">
-                  <div style="display:flex;align-items:center;gap:.8rem;margin-bottom:.8rem;">
-                    {post_avatar}
-                    <div>
-                      <div style="font-weight:700;color:{'var(--primary)' if mine else 'var(--text-primary)'};font-size:1rem;">
-                        @{safe_username} {'<span class="badge">You</span>' if mine else ''}
-                      </div>
-                      <div style="font-size:.75rem;color:var(--text-muted);">{ago(p['created_at'])}</div>
-                    </div>
+            st.markdown(f"""
+            <div class="post">
+              <div style="display:flex;align-items:center;gap:.8rem;margin-bottom:.8rem;">
+                {post_avatar}
+                <div>
+                  <div style="font-weight:700;color:{'var(--primary)' if mine else 'var(--text-primary)'};font-size:1rem;">
+                    @{safe_username} {'<span class="badge">You</span>' if mine else ''}
                   </div>
-                  <p style="margin:0;color:var(--text-primary);line-height:1.7;font-size:.95rem;">{content_html}</p>
-                  {render_attachment_preview(p.get('file_url'), p.get('file_name'), p.get('file_type'))}
+                  <div style="font-size:.75rem;color:var(--text-muted);">{ago(p['created_at'])}</div>
                 </div>
-                """, unsafe_allow_html=True)
+              </div>
+              <p style="margin:0;color:var(--text-primary);line-height:1.7;font-size:.95rem;">{content_html}</p>
+              {render_attachment_preview(p.get('file_url'), p.get('file_name'), p.get('file_type'))}
+            </div>
+            """, unsafe_allow_html=True)
 
-                # Reactions row — kept compact on the left instead of
-                # stretching one button across each full-width column.
-                counts = reaction_counts.get(p["id"], {})
-                mine_reactions = my_reactions.get(p["id"], set())
-                rcols = st.columns([1] * len(REACTION_EMOJIS) + [len(REACTION_EMOJIS) + 2])
-                for i, emoji in enumerate(REACTION_EMOJIS):
-                    n = counts.get(emoji, 0)
-                    label = f"{emoji} {n}" if n else emoji
-                    with rcols[i]:
-                        if st.button(label, key=f"react_{p['id']}_{emoji}"):
-                            if not check_rate_limit("reaction", limit=40, seconds=60):
-                                return
-                            if emoji in mine_reactions:
-                                sb.table("post_reactions").delete().eq("post_id", p["id"]).eq("user_id", st.session_state.user_id).eq("emoji", emoji).execute()
-                            else:
-                                sb.table("post_reactions").insert({
-                                    "post_id": p["id"], "user_id": st.session_state.user_id, "emoji": emoji,
-                                    "created_at": datetime.now(timezone.utc).isoformat(),
-                                }).execute()
-                                create_notification(sb, p["user_id"], st.session_state.user_id, "reaction", "New reaction", f"@{st.session_state.username} reacted {emoji} to your post.", "post", p["id"])
-                            session_cache_clear("home_feed_")
-                            st.rerun()
-
-                with st.expander("Comments and moderation", expanded=False):
-                    comments = comments_by_post.get(p["id"], [])
-                    if comments:
-                        for cm in comments:
-                            cm_profile = profile_map.get(cm.get("user_id"), {})
-                            cm_avatar = avatar_html(cm.get("username", "user"), cm_profile.get("avatar_url"), 26)
-                            st.markdown(
-                                f'<div style="display:flex;gap:.55rem;align-items:flex-start;margin:.45rem 0;">'
-                                f'{cm_avatar}<div><strong>@{escape_html(cm["username"])}</strong> '
-                                f'<span style="color:var(--text-muted);font-size:.75rem;">· {ago(cm["created_at"])}</span><br>'
-                                f'{linkify_mentions(cm["content"])}</div></div>',
-                                unsafe_allow_html=True,
-                            )
-                    else:
-                        st.caption("No comments yet.")
-
-                    with st.form(f"comment_form_{p['id']}", clear_on_submit=True):
-                        comment = st.text_input("Add a comment", key=f"comment_{p['id']}", label_visibility="collapsed", placeholder="Write a reply...")
-                        sent_comment = st.form_submit_button("Comment", use_container_width=True)
-                    if sent_comment and comment.strip():
-                        if check_rate_limit("comment", limit=10, seconds=60):
-                            res = sb.table("post_comments").insert({
-                                "post_id": p["id"],
-                                "user_id": st.session_state.user_id,
-                                "username": st.session_state.username,
-                                "content": comment.strip()[:300],
+            # Reactions row (compact) with an inline "View profile" button
+            # for other people's posts. The whole post now spans the full
+            # feed width so cards line up with the composer above.
+            counts = reaction_counts.get(p["id"], {})
+            mine_reactions = my_reactions.get(p["id"], set())
+            n_react = len(REACTION_EMOJIS)
+            if mine:
+                rcols = st.columns([1] * n_react + [n_react + 3])
+                view_col = None
+            else:
+                rcols = st.columns([1] * n_react + [n_react - 1, 2])
+                view_col = rcols[-1]
+            for i, emoji in enumerate(REACTION_EMOJIS):
+                n = counts.get(emoji, 0)
+                label = f"{emoji} {n}" if n else emoji
+                with rcols[i]:
+                    if st.button(label, key=f"react_{p['id']}_{emoji}", use_container_width=True):
+                        if not check_rate_limit("reaction", limit=40, seconds=60):
+                            return
+                        if emoji in mine_reactions:
+                            sb.table("post_reactions").delete().eq("post_id", p["id"]).eq("user_id", st.session_state.user_id).eq("emoji", emoji).execute()
+                        else:
+                            sb.table("post_reactions").insert({
+                                "post_id": p["id"], "user_id": st.session_state.user_id, "emoji": emoji,
                                 "created_at": datetime.now(timezone.utc).isoformat(),
                             }).execute()
-                            if res.data:
-                                create_notification(sb, p["user_id"], st.session_state.user_id, "comment", "New comment", f"@{st.session_state.username} commented on your post.", "post", p["id"])
-                            session_cache_clear("home_feed_")
-                            st.rerun()
-
-                    mod_cols = st.columns(3)
-                    with mod_cols[0]:
-                        if (mine or st.session_state.user.get("is_admin")) and st.button("Unpin" if p.get("is_pinned") else "Pin", key=f"pin_post_{p['id']}"):
-                            sb.table("posts").update({"is_pinned": not p.get("is_pinned", False)}).eq("id", p["id"]).execute()
-                            session_cache_clear("home_feed_")
-                            st.rerun()
-                    with mod_cols[1]:
-                        reason = st.text_input("Report reason", key=f"report_post_reason_{p['id']}", label_visibility="collapsed", placeholder="Report reason")
-                    with mod_cols[2]:
-                        if st.button("Report", key=f"report_post_{p['id']}"):
-                            report_target(sb, "post", p["id"], reason)
-
-            with col2:
-                if not mine:
-                    if st.button("👤 View", key=f"view_{p['id']}"):
+                            create_notification(sb, p["user_id"], st.session_state.user_id, "reaction", "New reaction", f"@{st.session_state.username} reacted {emoji} to your post.", "post", p["id"])
+                        session_cache_clear("home_feed_")
+                        st.rerun()
+            if view_col is not None:
+                with view_col:
+                    if st.button("👤 View", key=f"view_{p['id']}", use_container_width=True):
                         st.session_state.viewing_user = p["user_id"]
                         st.rerun()
+
+            with st.expander("Comments and moderation", expanded=False):
+                comments = comments_by_post.get(p["id"], [])
+                if comments:
+                    for cm in comments:
+                        cm_profile = profile_map.get(cm.get("user_id"), {})
+                        cm_avatar = avatar_html(cm.get("username", "user"), cm_profile.get("avatar_url"), 26)
+                        st.markdown(
+                            f'<div style="display:flex;gap:.55rem;align-items:flex-start;margin:.45rem 0;">'
+                            f'{cm_avatar}<div><strong>@{escape_html(cm["username"])}</strong> '
+                            f'<span style="color:var(--text-muted);font-size:.75rem;">· {ago(cm["created_at"])}</span><br>'
+                            f'{linkify_mentions(cm["content"])}</div></div>',
+                            unsafe_allow_html=True,
+                        )
+                else:
+                    st.caption("No comments yet.")
+
+                with st.form(f"comment_form_{p['id']}", clear_on_submit=True):
+                    comment = st.text_input("Add a comment", key=f"comment_{p['id']}", label_visibility="collapsed", placeholder="Write a reply...")
+                    sent_comment = st.form_submit_button("Comment", use_container_width=True)
+                if sent_comment and comment.strip():
+                    if check_rate_limit("comment", limit=10, seconds=60):
+                        res = sb.table("post_comments").insert({
+                            "post_id": p["id"],
+                            "user_id": st.session_state.user_id,
+                            "username": st.session_state.username,
+                            "content": comment.strip()[:300],
+                            "created_at": datetime.now(timezone.utc).isoformat(),
+                        }).execute()
+                        if res.data:
+                            create_notification(sb, p["user_id"], st.session_state.user_id, "comment", "New comment", f"@{st.session_state.username} commented on your post.", "post", p["id"])
+                        session_cache_clear("home_feed_")
+                        st.rerun()
+
+                mod_cols = st.columns(3)
+                with mod_cols[0]:
+                    if (mine or st.session_state.user.get("is_admin")) and st.button("Unpin" if p.get("is_pinned") else "Pin", key=f"pin_post_{p['id']}"):
+                        sb.table("posts").update({"is_pinned": not p.get("is_pinned", False)}).eq("id", p["id"]).execute()
+                        session_cache_clear("home_feed_")
+                        st.rerun()
+                with mod_cols[1]:
+                    reason = st.text_input("Report reason", key=f"report_post_reason_{p['id']}", label_visibility="collapsed", placeholder="Report reason")
+                with mod_cols[2]:
+                    if st.button("Report", key=f"report_post_{p['id']}"):
+                        report_target(sb, "post", p["id"], reason)
+
+            st.markdown("<div style='height:.4rem;'></div>", unsafe_allow_html=True)
 
 
 def notifications_page():
