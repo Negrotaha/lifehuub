@@ -3,7 +3,7 @@
 # Streamlit + Supabase + Groq AI
 # ============================================================
 
-import os, time, hashlib, base64, requests, io, html
+import os, time, hashlib, base64, requests, io, html, random
 from datetime import datetime, date, timedelta, timezone
 from pathlib import Path
 from urllib.parse import parse_qs
@@ -654,6 +654,513 @@ div[data-testid="stExpander"]:hover {
   
   .hero-title {
     font-size: 2.4rem;
+  }
+}
+
+/* ============================================================
+   PREMIUM UPGRADE LAYER — adds missing component styles and a
+   deep layer of polish on top of the base theme above. Nothing
+   from the original design is removed; everything here enhances
+   or completes it.
+   ============================================================ */
+
+/* Crisper global typography rendering */
+html, body, .stApp {
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+  text-rendering: optimizeLegibility !important;
+}
+
+/* Elegant text selection */
+::selection {
+  background: rgba(99, 102, 241, 0.38);
+  color: #ffffff;
+}
+
+/* Gentle entrance for the whole main view */
+.main .block-container {
+  animation: viewFadeIn 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes viewFadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Second animated aurora layer for extra depth */
+.stApp::after {
+  content: '';
+  position: fixed;
+  inset: -20%;
+  background:
+    radial-gradient(circle at 65% 15%, rgba(244, 114, 182, 0.07), transparent 40%),
+    radial-gradient(circle at 25% 85%, rgba(99, 102, 241, 0.07), transparent 42%);
+  animation: bgShift 18s ease-in-out infinite reverse;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Make sure real content sits above the animated background */
+.main .block-container, section[data-testid="stSidebar"] {
+  position: relative;
+  z-index: 1;
+}
+
+/* ---- Animated gradient border halo on cards ---- */
+.card, .post, .metric, .ev-card, .user-profile-card,
+.member-panel, div[data-testid="stForm"] {
+  isolation: isolate;
+}
+
+.card::after, .post::after, .metric::after, .ev-card::after,
+.user-profile-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(129, 140, 248, 0.55), rgba(6, 182, 212, 0.0) 40%, rgba(244, 114, 182, 0.0) 60%, rgba(6, 182, 212, 0.45));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+
+.card:hover::after, .post:hover::after, .metric:hover::after,
+.ev-card:hover::after, .user-profile-card:hover::after {
+  opacity: 1;
+}
+
+/* Richer metric value with gradient text + glow */
+.metric .val {
+  background: linear-gradient(135deg, #f8fafc, #818cf8 55%, #22d3ee);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 4px 18px rgba(99, 102, 241, 0.25));
+}
+
+/* Stronger button gradient + glow polish */
+.stButton > button {
+  background-size: 180% 180% !important;
+  background-image: linear-gradient(135deg, #6366f1, #06b6d4 55%, #818cf8) !important;
+  animation: btnGradient 8s ease infinite;
+}
+
+@keyframes btnGradient {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* Section header subtle animated shimmer line */
+.sh {
+  overflow: hidden;
+}
+
+.sh::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(129, 140, 248, 0.9), rgba(34, 211, 238, 0.9), transparent);
+  background-size: 200% 100%;
+  animation: shShimmer 4s linear infinite;
+}
+
+@keyframes shShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ============================================================
+   AVATAR WRAPPER + ONLINE / OFFLINE STATUS BADGES
+   ============================================================ */
+.av-wrap {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.status-badge {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 2.5px solid #0f172a;
+  box-sizing: border-box;
+  z-index: 2;
+}
+
+.status-badge.on {
+  background: var(--success);
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25), 0 0 10px rgba(16, 185, 129, 0.7);
+  animation: statusPulse 2s ease-in-out infinite;
+}
+
+.status-badge.off {
+  background: #64748b;
+}
+
+@keyframes statusPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.55), 0 0 10px rgba(16, 185, 129, 0.7); }
+  50% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0), 0 0 14px rgba(16, 185, 129, 0.9); }
+}
+
+/* Inline "online now" pulsing dot used on profiles */
+.online {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--success);
+  margin-right: 0.45rem;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6);
+  animation: statusPulse 2s ease-in-out infinite;
+}
+
+.av-clickable {
+  cursor: pointer;
+}
+
+.av-clickable:hover {
+  transform: scale(1.08) rotate(4deg);
+}
+
+/* ============================================================
+   MEMBER LIST + SIDEBAR LABELS / STATS
+   ============================================================ */
+.member-category {
+  margin: 1.1rem 0 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--text-muted);
+  padding-left: 0.2rem;
+  border-left: 3px solid rgba(99, 102, 241, 0.5);
+  padding-left: 0.6rem;
+}
+
+.sb-eyebrow {
+  margin: 0.4rem 0 0.7rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--text-muted);
+}
+
+.sb-stat {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.55rem 0.85rem;
+  margin: 0.4rem 0;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  transition: all 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+
+.sb-stat:hover {
+  transform: translateX(4px);
+  border-color: rgba(99, 102, 241, 0.4);
+  background: rgba(30, 41, 59, 0.8);
+}
+
+.sb-stat .n {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 800;
+  font-size: 1rem;
+  background: linear-gradient(135deg, #818cf8, #22d3ee);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ============================================================
+   AI CHAT BUBBLE META
+   ============================================================ */
+.bmeta, .bmeta-other {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-top: 0.45rem;
+  opacity: 0.75;
+}
+
+.bmeta {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.bmeta-other {
+  color: var(--text-muted);
+}
+
+/* Animated typing-style entrance for AI bubbles */
+.bme, .bother {
+  animation: bubbleIn 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes bubbleIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ============================================================
+   DISCORD-STYLE GROUPED CHAT MESSAGES
+   ============================================================ */
+.msg-group {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin: 0.55rem 0;
+  padding: 0.35rem 0.4rem;
+  border-radius: 16px;
+  transition: background 0.25s ease;
+  animation: bubbleIn 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.msg-group:hover {
+  background: rgba(99, 102, 241, 0.05);
+}
+
+.msg-group.mine {
+  flex-direction: row-reverse;
+}
+
+.msg-group-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-width: 78%;
+}
+
+.msg-group.mine .msg-group-body {
+  align-items: flex-end;
+}
+
+.msg-group-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.2rem;
+}
+
+.msg-group.mine .msg-group-head {
+  flex-direction: row-reverse;
+}
+
+.msg-group-name {
+  font-weight: 800;
+  font-size: 0.9rem;
+  color: var(--primary-light);
+}
+
+.msg-group.mine .msg-group-name {
+  color: #c7d2fe;
+}
+
+.msg-group-time {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.msg-line {
+  position: relative;
+  padding: 0.6rem 0.95rem;
+  margin: 0.18rem 0;
+  border-radius: 18px 18px 18px 6px;
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  color: var(--text-primary);
+  font-size: 0.92rem;
+  line-height: 1.55;
+  max-width: 100%;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+  box-shadow: 0 6px 20px rgba(2, 6, 23, 0.28);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.msg-line:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 28px rgba(2, 6, 23, 0.4);
+}
+
+.msg-group.mine .msg-line {
+  background: linear-gradient(135deg, var(--primary), #4f46e5);
+  border-color: transparent;
+  border-radius: 18px 18px 6px 18px;
+  color: #ffffff;
+  box-shadow: 0 10px 30px rgba(99, 102, 241, 0.32);
+}
+
+.msg-time-hover {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  left: -3.4rem;
+  font-size: 0.64rem;
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.msg-group.mine .msg-time-hover {
+  left: auto;
+  right: -3.4rem;
+}
+
+.msg-line:hover .msg-time-hover {
+  opacity: 1;
+}
+
+/* ============================================================
+   HABIT PROGRESS BARS
+   ============================================================ */
+.hbar {
+  margin-top: 0.75rem;
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(2, 6, 23, 0.6);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  overflow: hidden;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.hfill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--primary), var(--secondary), var(--primary-light));
+  background-size: 200% 100%;
+  animation: hfillShimmer 3s linear infinite;
+  box-shadow: 0 0 14px rgba(99, 102, 241, 0.55);
+  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes hfillShimmer {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+/* ============================================================
+   AUTH PAGE POLISH
+   ============================================================ */
+.auth-copy {
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+  line-height: 1.6;
+  margin: 0.2rem 0 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 14px;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.18);
+  border-left: 3px solid var(--primary);
+}
+
+.auth-hero .hero-logo-img,
+.hero-logo-img {
+  filter: drop-shadow(0 12px 40px rgba(99, 102, 241, 0.45));
+  animation: logoFloat 5s ease-in-out infinite;
+}
+
+.hero-logo-emoji {
+  font-size: 3.2rem;
+  display: inline-block;
+  filter: drop-shadow(0 10px 30px rgba(99, 102, 241, 0.5));
+  animation: logoFloat 5s ease-in-out infinite;
+}
+
+@keyframes logoFloat {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-8px) rotate(-2deg); }
+}
+
+.auth-product-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-product-card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: conic-gradient(from 0deg, transparent, rgba(99, 102, 241, 0.12), transparent 30%);
+  animation: cardSweep 9s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes cardSweep {
+  to { transform: rotate(360deg); }
+}
+
+/* Code blocks (profile share link, invite codes) */
+.stCode, pre, code {
+  border-radius: 12px !important;
+}
+
+/* Radio (auth mode + filters) selected pill glow */
+div[role="radiogroup"] label[data-baseweb="radio"]:has(input:checked) {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(6, 182, 212, 0.2));
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.25);
+}
+
+/* Spinner accent */
+.stSpinner > div {
+  border-top-color: var(--primary) !important;
+}
+
+/* Toast / alert refinements */
+div[data-testid="stNotification"] {
+  border-radius: var(--radius) !important;
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(148, 163, 184, 0.18) !important;
+}
+
+/* Container border refinement (sidebar user card etc.) */
+div[data-testid="stVerticalBlockBorderWrapper"] {
+  border-radius: var(--radius-lg) !important;
+}
+
+/* Caption polish */
+.stCaption, [data-testid="stCaptionContainer"] {
+  color: var(--text-muted) !important;
+}
+
+/* Slightly nicer markdown links */
+.main a {
+  color: var(--primary-light);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.main a:hover {
+  color: var(--secondary);
+  text-decoration: underline;
+}
+
+/* Reduced motion accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
   }
 }
 </style>
