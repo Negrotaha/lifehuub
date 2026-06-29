@@ -1306,6 +1306,25 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
   transform: translateY(-1px);
 }
 
+/* Instagram-style verified checkmark */
+.verified-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  margin-left: 4px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  background: linear-gradient(135deg, #1d9bf0, #0a7ad1);
+  box-shadow: 0 2px 8px rgba(29, 155, 240, 0.5),
+              inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  line-height: 0;
+}
+
+.verified-badge svg {
+  display: block;
+}
+
 .post-head-time {
   font-size: 0.72rem;
   font-weight: 500;
@@ -3002,6 +3021,22 @@ def auth_page():
 # ============================================================
 # VIEW USER PROFILE
 # ============================================================
+def verified_badge_html(user, size=18):
+    """Instagram-style verified checkmark, shown only for users an admin
+    has marked as verified (is_verified = true)."""
+    if not (user and user.get("is_verified")):
+        return ""
+    check = int(round(size * 0.62))
+    return (
+        f'<span class="verified-badge" title="Verified" '
+        f'style="width:{size}px;height:{size}px;">'
+        f'<svg viewBox="0 0 24 24" width="{check}" height="{check}" '
+        f'fill="#ffffff" aria-hidden="true">'
+        f'<path d="M9.55 17.6 4 12.05l1.4-1.4 4.15 4.14 8.05-8.05L19 8.15z"/>'
+        f'</svg></span>'
+    )
+
+
 def view_user_profile(user_id):
     sb = get_sb()
     user = get_user_profile(user_id)
@@ -3031,9 +3066,9 @@ def view_user_profile(user_id):
       <div style="display:flex;align-items:center;gap:1.5rem;margin-bottom:1.5rem;">
         {avatar_html(user.get('username', 'user'), user.get('avatar_url'), 80, 'av-lg')}
         <div>
-          <h2 style="margin:0;font-family:'Space Grotesk',sans-serif;color:var(--primary);">@{safe_username}</h2>
+          <h2 style="margin:0;font-family:'Space Grotesk',sans-serif;color:var(--primary);display:flex;align-items:center;gap:.1rem;">@{safe_username}{verified_badge_html(user, 22)}</h2>
           <div style="color:var(--text-muted);font-size:.78rem;margin-top:.2rem;">
-            {'✓ Verified · ' if user.get('is_verified') else ''}{'Admin · ' if user.get('is_admin') else ''}{escape_html(user.get('profile_badge') or 'Member')}
+            {'Verified · ' if user.get('is_verified') else ''}{'Admin · ' if user.get('is_admin') else ''}{escape_html(user.get('profile_badge') or 'Member')}
           </div>
           <div style="color:{'var(--primary)' if is_online else 'var(--text-muted)'};font-size:.9rem;margin:.2rem 0;">
             {'<span class="online"></span>Online now' if is_online else '⚫ Offline'}
@@ -3341,7 +3376,7 @@ def home_page():
               <div class="post-avatar">{post_avatar}</div>
               <div class="post-content">
                 <div class="post-head-name" style="color:{name_color};">
-                  @{safe_username} {you_badge}
+                  @{safe_username}{verified_badge_html(profile, 16)} {you_badge}
                   <span class="post-head-time">{ago(p['created_at'])}</span>
                 </div>
                 <p class="post-text">{content_html}</p>
@@ -3528,10 +3563,10 @@ def discover_page():
         with c_avatar:
             st.markdown(avatar_html(u.get("username", "user"), u.get("avatar_url"), 42), unsafe_allow_html=True)
         with c_info:
-            badge = "✓ Verified" if u.get("is_verified") else (u.get("profile_badge") or "Member")
+            badge = "Verified" if u.get("is_verified") else (u.get("profile_badge") or "Member")
             st.markdown(f"""
             <div class="card" style="padding:1rem 1.2rem;margin-bottom:.35rem;">
-              <div style="font-weight:900;color:var(--primary);">@{safe_username}</div>
+              <div style="font-weight:900;color:var(--primary);display:flex;align-items:center;gap:.1rem;">@{safe_username}{verified_badge_html(u, 15)}</div>
               <div style="color:var(--text-muted);font-size:.76rem;">{escape_html(badge)} · {followers} followers</div>
               <div style="color:var(--text-secondary);font-size:.88rem;margin-top:.35rem;">{safe_bio}</div>
             </div>
@@ -4461,9 +4496,14 @@ def profile_page():
             st.markdown(f'<div class="av av-lg" style="margin:auto;">{initials}</div>', unsafe_allow_html=True)
 
     with col_inf:
+        verified_line = '<span style="color:#1d9bf0;font-weight:700;font-size:.8rem;">Verified account</span>' if u.get("is_verified") else ""
         st.markdown(f"""
         <div style="padding-left:.5rem;">
-          <h2 style="margin:0;font-family:'Space Grotesk',sans-serif;background:linear-gradient(135deg,var(--primary),var(--secondary));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">@{safe_username}</h2>
+          <h2 style="margin:0;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;gap:.15rem;">
+            <span style="background:linear-gradient(135deg,var(--primary),var(--secondary));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">@{safe_username}</span>
+            {verified_badge_html(u, 22)}
+          </h2>
+          {verified_line}
           <p style="color:var(--text-secondary);margin:.3rem 0 0;">{safe_bio}</p>
           <p style="color:var(--text-muted);font-size:.8rem;margin-top:.3rem;">Joined {u.get('created_at', '')[:10]}</p>
         </div>
@@ -4509,9 +4549,16 @@ def profile_page():
     st.markdown("---")
     post_count, habit_count, _ = user_activity_counts(sb, st.session_state.user_id)
     message_count = user_sent_message_count(sb, st.session_state.user_id)
+    followers_count, following_count = follow_counts(sb, st.session_state.user_id)
 
-    cols = st.columns(3)
-    metrics = [(post_count, "Posts"), (habit_count, "Habits"), (message_count, "Messages")]
+    cols = st.columns(5)
+    metrics = [
+        (followers_count, "Followers"),
+        (following_count, "Following"),
+        (post_count, "Posts"),
+        (habit_count, "Habits"),
+        (message_count, "Messages"),
+    ]
     for col, (v, l) in zip(cols, metrics):
         col.markdown(f'<div class="metric"><div class="val">{v}</div><div class="lbl">{l}</div></div>', unsafe_allow_html=True)
 
