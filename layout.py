@@ -8,6 +8,7 @@ from core import (
     session_cache_clear, create_notification, report_target, safe_multiline,
     get_platform_stats, avatar_html,
 )
+from config import get_config
 from ui import logo_small, verified_badge_html
 
 def view_user_profile(user_id):
