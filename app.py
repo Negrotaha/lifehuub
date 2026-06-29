@@ -1268,13 +1268,37 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
   cursor: zoom-in;
 }
 
-/* Post media: a tidy, left-aligned framed embed that sits directly
-   under the text. The frame fills a sensible width while the image
-   keeps its aspect ratio (no crop, no distortion, no floating). */
+/* Post body: text on the left, media on the right, so the full card
+   width is used and a post never looks half-empty. */
+.post-body {
+  display: flex;
+  gap: 1.3rem;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.post-text {
+  margin: 0;
+  color: var(--text-primary);
+  line-height: 1.7;
+  font-size: 0.95rem;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+}
+
+.post-body > .post-text {
+  flex: 1 1 240px;
+  min-width: 0;
+  align-self: center;
+}
+
+/* Post media: a tidy framed embed. The frame keeps the image's aspect
+   ratio (no crop, no distortion). */
 .post-media {
-  margin-top: 0.85rem;
+  margin-top: 0.2rem;
+  flex: 0 0 340px;
+  max-width: 340px;
   width: 100%;
-  max-width: 460px;
   border-radius: 18px;
   overflow: hidden;
   border: 1px solid rgba(148, 163, 184, 0.22);
@@ -1292,11 +1316,17 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
   width: auto !important;
   height: auto !important;
   max-width: 100% !important;
-  max-height: 420px !important;
+  max-height: 360px !important;
   margin: 0 !important;
   border: none !important;
   border-radius: 0 !important;
   box-shadow: none !important;
+}
+
+/* On narrow screens stack text above media so nothing is squashed. */
+@media (max-width: 760px) {
+  .post-body { flex-direction: column; }
+  .post-media { flex-basis: auto; max-width: 100%; }
 }
 
 .post img:hover, .msg-line img:hover {
@@ -3283,6 +3313,20 @@ def home_page():
             safe_username = escape_html(p.get("username", "user"))
             content_html = linkify_mentions(p["content"])
 
+            # When a post has media, lay the text on the left and the
+            # image on the right so the full card width is used (no more
+            # half-empty card). Text-only posts span the full width.
+            media_html = render_attachment_preview(p.get('file_url'), p.get('file_name'), p.get('file_type'))
+            if media_html:
+                body_html = (
+                    f'<div class="post-body">'
+                    f'<div class="post-text">{content_html}</div>'
+                    f'{media_html}'
+                    f'</div>'
+                )
+            else:
+                body_html = f'<p class="post-text post-text--full">{content_html}</p>'
+
             st.markdown(f"""
             <div class="post">
               <div style="display:flex;align-items:center;gap:.8rem;margin-bottom:.8rem;">
@@ -3294,8 +3338,7 @@ def home_page():
                   <div style="font-size:.75rem;color:var(--text-muted);">{ago(p['created_at'])}</div>
                 </div>
               </div>
-              <p style="margin:0;color:var(--text-primary);line-height:1.7;font-size:.95rem;">{content_html}</p>
-              {render_attachment_preview(p.get('file_url'), p.get('file_name'), p.get('file_type'))}
+              {body_html}
             </div>
             """, unsafe_allow_html=True)
 
