@@ -276,6 +276,22 @@ AS $$
     SELECT coalesce((SELECT is_admin FROM profiles WHERE id = check_user_id), FALSE);
 $$;
 
+-- Public aggregate stats for the auth page (anon users cannot SELECT tables via RLS).
+CREATE OR REPLACE FUNCTION public.get_platform_stats()
+RETURNS TABLE(members bigint, posts bigint, messages bigint)
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+STABLE
+AS $$
+    SELECT
+        (SELECT count(*) FROM profiles)::bigint,
+        (SELECT count(*) FROM posts)::bigint,
+        (SELECT count(*) FROM messages)::bigint;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.get_platform_stats() TO anon, authenticated;
+
 -- Row Level Security policies. app.py stores the Supabase Auth session
 -- tokens after login, so table queries run as the authenticated user.
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
@@ -454,7 +470,16 @@ CREATE POLICY channel_members_insert_self_or_admin
 ON channel_members FOR INSERT TO authenticated
 WITH CHECK (
     user_id = auth.uid()
-    AND (role = 'member' OR public.is_lifehub_admin(auth.uid()))
+    AND (
+        role = 'member'
+        OR public.is_lifehub_admin(auth.uid())
+        OR EXISTS (
+            SELECT 1 FROM channels c
+            WHERE c.id = channel_members.channel_id
+              AND c.created_by = auth.uid()
+              AND channel_members.role = 'owner'
+        )
+    )
 );
 
 CREATE POLICY channel_members_update_self_or_admin
