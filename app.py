@@ -1268,44 +1268,69 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
   cursor: zoom-in;
 }
 
-/* Post body: text on the left, media on the right, so the full card
-   width is used and a post never looks half-empty. */
-.post-body {
+/* ---- Professional post header (avatar + name + time) ---- */
+.post-head {
   display: flex;
-  gap: 1.3rem;
-  align-items: flex-start;
-  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.85rem;
+  margin-bottom: 0.9rem;
 }
 
+.post-head-meta {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+.post-head-name {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 800;
+  font-size: 1rem;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.post-head-name .badge {
+  transform: translateY(-1px);
+}
+
+.post-head-time {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  margin-top: 0.2rem;
+}
+
+/* ---- Post message text ---- */
 .post-text {
-  margin: 0;
+  margin: 0 0 0.2rem;
   color: var(--text-primary);
-  line-height: 1.7;
-  font-size: 0.95rem;
+  line-height: 1.75;
+  font-size: 0.97rem;
   word-wrap: break-word;
   overflow-wrap: anywhere;
 }
 
-.post-body > .post-text {
-  flex: 1 1 240px;
-  min-width: 0;
-  align-self: center;
-}
-
-/* Post media: a tidy framed embed. The frame keeps the image's aspect
-   ratio (no crop, no distortion). */
+/* ---- Professional media showcase: full-width framed embed shown
+   directly under the message. The frame spans the card so a post is
+   never half-empty; the image is centered on a soft backdrop with its
+   aspect ratio preserved (no crop, no distortion). ---- */
 .post-media {
-  margin-top: 0.2rem;
-  flex: 0 0 340px;
-  max-width: 340px;
+  margin-top: 1rem;
   width: 100%;
-  border-radius: 18px;
+  max-width: 100%;
+  min-height: 200px;
+  padding: 1.1rem;
+  border-radius: 20px;
   overflow: hidden;
-  border: 1px solid rgba(148, 163, 184, 0.22);
+  border: 1px solid rgba(148, 163, 184, 0.2);
   background:
-    linear-gradient(180deg, rgba(15, 23, 42, 0.5), rgba(2, 6, 23, 0.6));
-  box-shadow: 0 18px 55px rgba(2, 6, 23, 0.5),
-              inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.12), transparent 60%),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.55), rgba(2, 6, 23, 0.65));
+  box-shadow: 0 22px 60px rgba(2, 6, 23, 0.55),
+              inset 0 1px 0 rgba(255, 255, 255, 0.05);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1316,17 +1341,11 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
   width: auto !important;
   height: auto !important;
   max-width: 100% !important;
-  max-height: 360px !important;
-  margin: 0 !important;
-  border: none !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-}
-
-/* On narrow screens stack text above media so nothing is squashed. */
-@media (max-width: 760px) {
-  .post-body { flex-direction: column; }
-  .post-media { flex-basis: auto; max-width: 100%; }
+  max-height: 440px !important;
+  margin: 0 auto !important;
+  border-radius: 12px !important;
+  border: 1px solid rgba(148, 163, 184, 0.18) !important;
+  box-shadow: 0 16px 45px rgba(2, 6, 23, 0.5) !important;
 }
 
 .post img:hover, .msg-line img:hover {
@@ -3313,32 +3332,24 @@ def home_page():
             safe_username = escape_html(p.get("username", "user"))
             content_html = linkify_mentions(p["content"])
 
-            # When a post has media, lay the text on the left and the
-            # image on the right so the full card width is used (no more
-            # half-empty card). Text-only posts span the full width.
+            # Professional post layout: clean header (avatar + name + time),
+            # the message text, then the image showcased full-width directly
+            # under the message.
             media_html = render_attachment_preview(p.get('file_url'), p.get('file_name'), p.get('file_type'))
-            if media_html:
-                body_html = (
-                    f'<div class="post-body">'
-                    f'<div class="post-text">{content_html}</div>'
-                    f'{media_html}'
-                    f'</div>'
-                )
-            else:
-                body_html = f'<p class="post-text post-text--full">{content_html}</p>'
+            name_color = 'var(--primary)' if mine else 'var(--text-primary)'
+            you_badge = '<span class="badge">You</span>' if mine else ''
 
             st.markdown(f"""
             <div class="post">
-              <div style="display:flex;align-items:center;gap:.8rem;margin-bottom:.8rem;">
+              <div class="post-head">
                 {post_avatar}
-                <div>
-                  <div style="font-weight:700;color:{'var(--primary)' if mine else 'var(--text-primary)'};font-size:1rem;">
-                    @{safe_username} {'<span class="badge">You</span>' if mine else ''}
-                  </div>
-                  <div style="font-size:.75rem;color:var(--text-muted);">{ago(p['created_at'])}</div>
+                <div class="post-head-meta">
+                  <div class="post-head-name" style="color:{name_color};">@{safe_username} {you_badge}</div>
+                  <div class="post-head-time">{ago(p['created_at'])}</div>
                 </div>
               </div>
-              {body_html}
+              <p class="post-text post-text--full">{content_html}</p>
+              {media_html}
             </div>
             """, unsafe_allow_html=True)
 
