@@ -5,7 +5,7 @@ from PIL import Image
 import streamlit as st
 from supabase import create_client, Client
 from postgrest.types import ReturnMethod
-from config import GROQ_API_KEY, GROQ_BASE_URL, PROFILE_COLS, GROQ_MODEL_CANDIDATES
+from config import GROQ_API_KEY, GROQ_BASE_URL, PROFILE_COLS, GROQ_MODEL_CANDIDATES, get_config
 
 def get_user_profile(user_id):
     def load():
