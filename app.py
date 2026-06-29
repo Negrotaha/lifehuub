@@ -1281,12 +1281,14 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
 
 .post-avatar {
   flex: 0 0 auto;
-  padding-top: 0.1rem;
+  margin-top: 5px;
+  margin-left: 5px;
 }
 
 .post-content {
   flex: 1 1 auto;
   min-width: 0;
+  margin-top: 5px;
 }
 
 .post-head-name {
