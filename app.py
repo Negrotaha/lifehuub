@@ -1268,17 +1268,35 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
   cursor: zoom-in;
 }
 
-/* Center post media so an image never sits lopsided on the left with
-   a large empty area to its right — symmetric margins read as
-   intentional design. Aspect ratio is preserved (no crop/distortion). */
-.post img {
+/* Post media: a tidy, left-aligned framed embed that sits directly
+   under the text. The frame fills a sensible width while the image
+   keeps its aspect ratio (no crop, no distortion, no floating). */
+.post-media {
+  margin-top: 0.85rem;
+  width: 100%;
+  max-width: 460px;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.5), rgba(2, 6, 23, 0.6));
+  box-shadow: 0 18px 55px rgba(2, 6, 23, 0.5),
+              inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.post-media img {
   display: block !important;
-  margin: 0.7rem auto 0.2rem !important;
-  max-width: min(100%, 560px) !important;
-  max-height: 520px !important;
   width: auto !important;
   height: auto !important;
-  object-fit: contain;
+  max-width: 100% !important;
+  max-height: 420px !important;
+  margin: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
 }
 
 .post img:hover, .msg-line img:hover {
@@ -1877,6 +1895,15 @@ def report_target(sb, target_type, target_id, reason):
 def render_attachment_preview(url, name, file_type):
     if not url:
         return ""
+    # Posts get a dedicated, left-aligned framed media container so an
+    # image reads as an intentional embed under the text instead of a
+    # loose <img> floating in the middle of a wide card.
+    if file_type == "image":
+        safe_name = escape_html(name or "image")
+        return (
+            f'<div class="post-media"><img src="{url}" alt="{safe_name}" '
+            f'loading="lazy"></div>'
+        )
     return render_attachment_html(url, name, file_type)
 
 def ago(ts: str) -> str:
@@ -2316,6 +2343,15 @@ def report_target(sb, target_type, target_id, reason):
 def render_attachment_preview(url, name, file_type):
     if not url:
         return ""
+    # Posts get a dedicated, left-aligned framed media container so an
+    # image reads as an intentional embed under the text instead of a
+    # loose <img> floating in the middle of a wide card.
+    if file_type == "image":
+        safe_name = escape_html(name or "image")
+        return (
+            f'<div class="post-media"><img src="{url}" alt="{safe_name}" '
+            f'loading="lazy"></div>'
+        )
     return render_attachment_html(url, name, file_type)
 
 def ago(ts: str) -> str:
