@@ -1154,14 +1154,27 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
   text-decoration: underline;
 }
 
-/* Reduced motion accessibility */
+/* Reduced motion accessibility — only soften hover transitions.
+   Signature looping visuals (the 3D cube, hero glow, floating logo,
+   animated backgrounds and progress shimmers) are intentionally kept
+   so the experience still feels alive. */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
+  .stButton > button,
+  .card, .post, .metric, .ev-card, .user-profile-card,
+  .av, .badge, .sb-stat, .msg-line, .msg-group {
     transition-duration: 0.001ms !important;
-    scroll-behavior: auto !important;
   }
+}
+
+/* Guarantee the 3D login cube always spins, regardless of any
+   global motion overrides. */
+.cube {
+  animation: cubeSpin 16s linear infinite !important;
+  transform-style: preserve-3d !important;
+}
+
+.cube-stage {
+  perspective: 1400px !important;
 }
 </style>
 """, unsafe_allow_html=True)
