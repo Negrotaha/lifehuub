@@ -4,7 +4,7 @@ from datetime import datetime, date, timedelta, timezone
 from PIL import Image
 import streamlit as st
 from postgrest.types import ReturnMethod
-from config import GROQ_API_KEY, MAP_LAT, MAP_LON, MAP_ZOOM
+from config import GROQ_API_KEY, MAP_LAT, MAP_LON, MAP_ZOOM, get_config
 from core import (
     get_sb, session_cache_get, session_cache_clear, check_rate_limit,
     escape_html, safe_multiline, linkify_mentions, avatar_html, avatar_wrap_html,
