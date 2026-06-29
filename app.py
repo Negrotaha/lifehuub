@@ -742,11 +742,15 @@ html, body, .stApp {
   filter: drop-shadow(0 4px 18px rgba(99, 102, 241, 0.25));
 }
 
-/* Stronger button gradient + glow polish */
+/* Stronger button gradient + glow polish. The gradient only animates
+   on hover (not continuously on every button) to keep the page light. */
 .stButton > button {
   background-size: 180% 180% !important;
   background-image: linear-gradient(135deg, #6366f1, #06b6d4 55%, #818cf8) !important;
-  animation: btnGradient 8s ease infinite;
+}
+
+.stButton > button:hover {
+  animation: btnGradient 4s ease infinite;
 }
 
 @keyframes btnGradient {
@@ -1196,7 +1200,9 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
   to { background-position: 220% center; }
 }
 
-/* Always-on living gradient halo around posts + the form */
+/* Living gradient halo around posts + the form. Static (no animation)
+   at rest; the flowing animation only kicks in on hover so dozens of
+   posts don't each run a perpetual animation. */
 .post::after, div[data-testid="stForm"]::after {
   content: '';
   position: absolute;
@@ -1208,13 +1214,14 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
-  opacity: 0.55;
-  animation: haloFlow 7s ease infinite;
+  opacity: 0.4;
+  transition: opacity 0.4s ease;
   pointer-events: none;
 }
 
 .post:hover::after, div[data-testid="stForm"]:hover::after {
   opacity: 1;
+  animation: haloFlow 7s ease infinite;
 }
 
 @keyframes haloFlow {
@@ -1233,11 +1240,13 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
   opacity: 0;
   z-index: 0;
   transition: opacity 0.35s ease;
-  animation: ringSpin 6s linear infinite;
 }
 
+/* Spin only while hovered so the blur effect isn't composited for
+   every avatar on the page continuously. */
 .av-wrap:hover::before {
   opacity: 0.85;
+  animation: ringSpin 6s linear infinite;
 }
 
 /* Keep the avatar itself above its glow ring */
@@ -1257,6 +1266,17 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
   box-shadow: 0 14px 45px rgba(2, 6, 23, 0.5);
   transition: transform 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28), box-shadow 0.4s ease;
   cursor: zoom-in;
+}
+
+/* Let post media fill the card width (responsive) instead of sitting
+   small on the left and leaving a large empty area. */
+.post img {
+  width: 100% !important;
+  max-width: 520px !important;
+  max-height: 460px !important;
+  height: auto !important;
+  object-fit: cover;
+  margin-top: 0.6rem;
 }
 
 .post img:hover, .msg-line img:hover {
@@ -1350,7 +1370,7 @@ section[data-testid="stSidebar"] .stButton > button:hover::after {
   filter: drop-shadow(0 4px 26px rgba(34, 211, 238, 0.55));
 }
 
-/* Chat bubbles: subtle floating sheen */
+/* Chat bubbles: subtle floating sheen, animated on hover only */
 .bme::after, .bother::after {
   content: '';
   position: absolute;
@@ -1358,8 +1378,10 @@ section[data-testid="stSidebar"] .stButton > button:hover::after {
   border-radius: inherit;
   background: linear-gradient(120deg, transparent 40%, rgba(255,255,255,0.06) 50%, transparent 60%);
   background-size: 250% 100%;
-  animation: haloFlow 6s ease infinite;
   pointer-events: none;
+}
+.bme:hover::after, .bother:hover::after {
+  animation: haloFlow 6s ease infinite;
 }
 .bme, .bother { position: relative; overflow: hidden; }
 
@@ -3223,7 +3245,7 @@ def home_page():
             safe_username = escape_html(p.get("username", "user"))
             content_html = linkify_mentions(p["content"])
 
-            col1, col2 = st.columns([6, 1])
+            col1, col2 = st.columns([5, 2])
             with col1:
                 st.markdown(f"""
                 <div class="post">
@@ -3241,10 +3263,11 @@ def home_page():
                 </div>
                 """, unsafe_allow_html=True)
 
-                # Reactions row
+                # Reactions row — kept compact on the left instead of
+                # stretching one button across each full-width column.
                 counts = reaction_counts.get(p["id"], {})
                 mine_reactions = my_reactions.get(p["id"], set())
-                rcols = st.columns(len(REACTION_EMOJIS) + 1)
+                rcols = st.columns([1] * len(REACTION_EMOJIS) + [len(REACTION_EMOJIS) + 2])
                 for i, emoji in enumerate(REACTION_EMOJIS):
                     n = counts.get(emoji, 0)
                     label = f"{emoji} {n}" if n else emoji
@@ -3596,7 +3619,7 @@ def render_attachment_html(file_url, file_name, file_type):
             f'color:var(--primary);text-decoration:none;font-size:.85rem;">📎 {safe_name}</a>')
 
 
-@st.fragment(run_every=1)
+@st.fragment(run_every=2)
 def render_live_messages_fragment(sb, tid, sel, target_avatar):
     """
     Auto-refreshing message list, isolated in its own fragment so only
